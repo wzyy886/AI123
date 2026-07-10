@@ -1,21 +1,21 @@
 'use strict';
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ';
-const BASE_URL = 'https://dashscope.aliyuncs.com/api/v1';
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
 exports.main = async (event, context) => {
-  const { code, language = 'JavaScript' } = event;
+  const { language, code } = event;
   
   if (!code) {
     return {
       success: false,
-      message: '请输入要审查的代码'
+      message: '请输入待审查的代码'
     };
   }
 
   try {
     const res = await uniCloud.httpclient.request(
-      BASE_URL + '/services/aigc/text-generation/generation',
+      BASE_URL + '/chat/completions',
       {
         method: 'POST',
         headers: {
@@ -24,22 +24,18 @@ exports.main = async (event, context) => {
         },
         data: {
           model: 'qwen-turbo',
-          input: {
-            messages: [
-              {
-                role: 'system',
-                content: `你是一个专业的代码审查专家。请对${language}代码进行全面审查，包括代码质量、安全性、性能和最佳实践。`
-              },
-              {
-                role: 'user',
-                content: `请审查以下${language}代码：\n\n${code}`
-              }
-            ]
-          },
-          parameters: {
-            max_tokens: 2048,
-            temperature: 0.7
-          }
+          messages: [
+            {
+              role: 'system',
+              content: '你是一个专业的代码审查助手。请检查代码的正确性、安全性、性能问题和代码风格，并给出改进建议。'
+            },
+            {
+              role: 'user',
+              content: `请审查以下${language || 'JavaScript'}代码：\n\n${code}`
+            }
+          ],
+          max_tokens: 2048,
+          temperature: 0.5
         },
         dataType: 'json',
         sslVerify: false,
@@ -47,15 +43,16 @@ exports.main = async (event, context) => {
       }
     );
 
-    if (res.status === 200 && res.data && res.data.output && res.data.output.choices) {
+    if (res.status === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
       return {
         success: true,
-        data: res.data.output.choices[0].message.content
+        data: res.data.choices[0].message.content
       };
     } else {
+      console.error('API Response Error:', res);
       return {
         success: false,
-        message: 'AI返回数据格式异常',
+        message: 'AI服务返回异常',
         status: res.status,
         response: res.data
       };
@@ -64,7 +61,7 @@ exports.main = async (event, context) => {
     console.error('Review API Error:', error);
     return {
       success: false,
-      message: 'AI服务调用失败',
+      message: '网络请求失败',
       error: error.message || String(error)
     };
   }

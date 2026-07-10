@@ -1,379 +1,229 @@
 <template>
 	<view class="container">
-		<view class="page-header">
+		<view class="header">
 			<view class="header-bg"></view>
 			<view class="header-content">
 				<view class="icon-wrap">
-					<text>✨</text>
+					<view class="icon">✨</view>
+					<view class="icon-glow"></view>
 				</view>
-				<view class="header-info">
-					<text class="title">代码生成</text>
-					<text class="subtitle">根据描述生成代码</text>
-				</view>
+				<text class="title">代码生成</text>
+				<text class="subtitle">根据描述生成代码</text>
 			</view>
 		</view>
 		
-		<scroll-view class="main-content" scroll-y>
-			<view class="form-card">
-				<view class="card-title-row">
-					<text class="card-title">生成配置</text>
+		<scroll-view class="content" scroll-y>
+			<view class="card">
+				<view class="form-item">
+					<text class="label">编程语言</text>
+					<view class="selector" @click="showLangPicker">
+						<text class="selector-text">{{selectedLang}}</text>
+						<text class="selector-arrow">›</text>
+					</view>
 				</view>
 				
 				<view class="form-item">
-					<view class="label-wrap">
-						<text class="label">编程语言</text>
-						<text class="label-hint">选择目标语言</text>
-					</view>
-					<picker :value="languageIndex" :range="languages" @change="onLanguageChange">
-						<view class="picker-box">
-							<text class="picker-text">{{languages[languageIndex]}}</text>
-							<text class="picker-arrow">›</text>
-						</view>
-					</picker>
+					<text class="label">功能描述</text>
+					<textarea v-model="desc" placeholder="请描述你想要实现的功能..." maxlength="500"/>
+					<text class="count">{{desc.length}}/500</text>
 				</view>
 				
-				<view class="form-item">
-					<view class="label-wrap">
-						<text class="label">功能描述</text>
-						<text class="label-hint">越详细越好</text>
-					</view>
-					<textarea 
-						class="textarea-field" 
-						v-model="description" 
-						placeholder="请描述你想要实现的功能，例如：创建一个响应式的登录页面，包含用户名和密码输入框，以及登录按钮..."
-						:maxlength="-1"
-						auto-height
-					/>
-				</view>
-				
-				<button class="submit-btn" :disabled="loading || !description.trim()" @click="generateCode">
-					<view class="btn-content" v-if="loading">
-						<view class="btn-dots">
-							<view class="dot"></view>
-							<view class="dot"></view>
-							<view class="dot"></view>
-						</view>
-						<text>生成中...</text>
-					</view>
-					<text v-else>生成代码</text>
+				<button class="submit-btn" :disabled="!desc.trim() || loading" @click="generate">
+					<text>生成代码</text>
 				</button>
 			</view>
 			
 			<view class="result-card" v-if="result">
-				<view class="card-title-row">
-					<text class="card-title">生成结果</text>
-					<view class="card-actions">
-						<button class="action-btn" @click="copyResult">
-							<text>📋 复制</text>
-						</button>
-						<button class="action-btn" @click="regenerate">
-							<text>🔄 重新生成</text>
-						</button>
-					</view>
+				<view class="result-header">
+					<text class="result-title">生成结果</text>
+					<button class="copy-btn" @click="copy">复制</button>
 				</view>
-				<scroll-view class="result-scroll" scroll-y>
-					<text class="code-content">{{result}}</text>
-				</scroll-view>
+				<view class="result-body">
+					<text>{{result}}</text>
+				</view>
 			</view>
 		</scroll-view>
+		
+		<view class="loading-mask" v-if="loading">
+			<view class="loading-box">
+				<view class="spin"></view>
+				<text class="loading-text">正在生成代码...</text>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
-	
-	const languages = ['JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'PHP']
-	const languageIndex = ref(0)
-	const description = ref('')
+	const selectedLang = ref('JavaScript')
+	const desc = ref('')
 	const result = ref('')
 	const loading = ref(false)
 	
-	const onLanguageChange = (e: any) => {
-		languageIndex.value = e.detail.value
+	const langs = ['JavaScript', 'Python', 'Java', 'TypeScript', 'Go', 'Rust', 'C++', 'PHP']
+	
+	const showLangPicker = () => {
+		uni.showActionSheet({
+			itemList: langs,
+			success: (res) => { selectedLang.value = langs[res.tapIndex] }
+		})
 	}
 	
-	const generateCode = async () => {
-		if (!description.value.trim() || loading.value) return
-		
+	const generate = async () => {
+		if (!desc.value.trim() || loading.value) return
 		loading.value = true
 		result.value = ''
 		
 		try {
 			const res: any = await uniCloud.callFunction({
 				name: 'generate',
-				data: { 
-					description: description.value,
-					language: languages[languageIndex.value]
-				}
+				data: { description: desc.value, language: selectedLang.value }
 			})
-			
-			if (res.result && res.result.success) {
-				result.value = res.result.data
-			} else {
-				uni.showToast({ title: '生成失败：' + (res.result?.message || '未知错误'), icon: 'none' })
-			}
-		} catch (error) {
+			if (res.result?.success) { result.value = res.result.data }
+			else { uni.showToast({ title: '生成失败', icon: 'none' }) }
+		} catch (e) {
 			uni.showToast({ title: '网络错误', icon: 'none' })
-		} finally {
-			loading.value = false
-		}
+		} finally { loading.value = false }
 	}
 	
-	const regenerate = () => {
-		result.value = ''
-		generateCode()
-	}
-	
-	const copyResult = () => {
-		if (!result.value) return
-		uni.setClipboardData({
-			data: result.value,
-			success: () => {
-				uni.showToast({ title: '已复制', icon: 'success' })
-			}
-		})
+	const copy = () => {
+		uni.setClipboardData({ data: result.value, success: () => uni.showToast({ title: '复制成功', icon: 'success' }) })
 	}
 </script>
 
-<style>
-	page {
-		height: 100%;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-	}
+<style lang="scss">
+	page { background: #f5f5f5; min-height: 100%; }
 	
-	.container {
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-	}
+	.container { display: flex; flex-direction: column; min-height: 100vh; }
 	
-	.page-header {
-		position: relative;
-		padding: 12px 16px;
-		background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-		overflow: hidden;
-	}
+	.header { position: relative; padding-bottom: 40px; }
 	
 	.header-bg {
-		position: absolute;
-		top: -50%;
-		right: -20%;
-		width: 100%;
-		height: 100%;
-		background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+		position: absolute; top: 0; left: 0; right: 0; height: 220px;
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		border-radius: 0 0 40px 40px;
 	}
 	
 	.header-content {
-		position: relative;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		gap: 12px;
+		position: relative; z-index: 1;
+		padding: 60px 24px 20px; text-align: center;
 	}
 	
-	.icon-wrap {
-		width: 44px;
-		height: 44px;
-		background: rgba(255, 255, 255, 0.2);
-		backdrop-filter: blur(10px);
-		border-radius: 12px;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		justify-content: center;
-		-webkit-justify-content: center;
-		font-size: 22px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
+	.icon-wrap { position: relative; display: inline-block; margin-bottom: 16px; }
+	
+	.icon {
+		width: 64px; height: 64px; background: rgba(255,255,255,0.2);
+		border-radius: 50%; display: flex; align-items: center; justify-content: center;
+		font-size: 28px; position: relative; z-index: 1;
+		border: 2px solid rgba(255,255,255,0.4);
 	}
 	
-	.header-info {
-		flex: 1;
+	.icon-glow {
+		position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px;
+		background: rgba(255,255,255,0.15); border-radius: 50%;
+		animation: pulse 2s infinite;
+	}
+	
+	@keyframes pulse {
+		0% { transform: scale(1); opacity: 0.5; }
+		50% { transform: scale(1.15); opacity: 0.8; }
+		100% { transform: scale(1); opacity: 0.5; }
 	}
 	
 	.title {
-		font-size: 18px;
-		color: #fff;
-		font-weight: 700;
-		display: block;
+		display: block; font-size: 22px; font-weight: 700; color: #fff;
+		margin-bottom: 6px;
 	}
 	
-	.subtitle {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.8);
-		margin-top: 2px;
-		display: block;
+	.subtitle { display: block; font-size: 14px; color: rgba(255,255,255,0.8); }
+	
+	.content {
+		flex: 1; padding: 0 16px; padding-bottom: 30px;
+		margin-top: -20px; z-index: 2;
 	}
 	
-	.main-content {
-		flex: 1;
-		padding: 12px;
+	.card {
+		background: #fff; border-radius: 20px; padding: 24px;
+		box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 20px;
 	}
 	
-	.form-card, .result-card {
-		background: rgba(255, 255, 255, 0.06);
-		backdrop-filter: blur(20px);
-		border-radius: 24px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		margin-bottom: 20px;
-		overflow: hidden;
-	}
+	.form-item { margin-bottom: 20px; }
 	
-	.card-title-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 20px;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	}
+	.form-item:last-child { margin-bottom: 0; }
 	
-	.card-title {
-		font-size: 16px;
-		font-weight: 600;
-		color: #fff;
-	}
-	
-	.card-actions {
-		display: flex;
-		gap: 8px;
-	}
-	
-	.action-btn {
-		padding: 6px 14px;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 12px;
-		font-size: 13px;
-		color: rgba(255, 255, 255, 0.8);
-	}
-	
-	.action-btn:active {
-		background: rgba(255, 255, 255, 0.2);
-	}
-	
-	.form-item {
-		padding: 20px;
-	}
-	
-	.label-wrap {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+	.label {
+		display: block; font-size: 15px; font-weight: 600; color: #333;
 		margin-bottom: 12px;
 	}
 	
-	.label {
-		font-size: 15px;
-		color: #fff;
-		font-weight: 500;
+	.selector {
+		display: flex; align-items: center; justify-content: space-between;
+		background: #f5f5f5; padding: 14px 16px; border-radius: 12px;
 	}
 	
-	.label-hint {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.4);
+	.selector-text { font-size: 15px; color: #333; }
+	
+	.selector-arrow { font-size: 18px; color: #999; font-weight: bold; }
+	
+	textarea {
+		width: 100%; height: 140px; background: #f5f5f5;
+		border-radius: 12px; padding: 14px 16px; font-size: 15px;
+		color: #333; line-height: 1.6; box-sizing: border-box;
 	}
 	
-	.picker-box {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 16px;
-		background: rgba(255, 255, 255, 0.08);
-		border-radius: 16px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-	}
+	textarea::placeholder { color: #bbb; }
 	
-	.picker-text {
-		font-size: 15px;
-		color: #fff;
-	}
-	
-	.picker-arrow {
-		font-size: 20px;
-		color: rgba(255, 255, 255, 0.4);
-		font-weight: bold;
-	}
-	
-	.textarea-field {
-		width: 100%;
-		min-height: 200px;
-		padding: 16px;
-		background: rgba(255, 255, 255, 0.08);
-		border-radius: 16px;
-		font-size: 15px;
-		color: #fff;
-		box-sizing: border-box;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		line-height: 1.6;
-	}
-	
-	.textarea-field::placeholder {
-		color: rgba(255, 255, 255, 0.3);
-	}
-	
-	.textarea-field:focus {
-		border-color: #10b981;
-	}
+	.count { display: block; font-size: 12px; color: #999; text-align: right; margin-top: 6px; }
 	
 	.submit-btn {
-		margin: 0 20px 20px;
-		height: 52px;
+		width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: #fff; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600;
+		margin-top: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+	}
+	
+	.submit-btn[disabled] { background: #ccc; box-shadow: none; }
+	
+	.result-card {
+		background: #fff; border-radius: 20px; padding: 24px;
+		box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+	}
+	
+	.result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+	
+	.result-title { font-size: 16px; font-weight: 600; color: #333; }
+	
+	.copy-btn {
 		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-		color: #fff;
-		border-radius: 16px;
-		font-size: 16px;
-		font-weight: 600;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+		color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 13px;
 	}
 	
-	.submit-btn[disabled] {
-		background: rgba(255, 255, 255, 0.2);
-		box-shadow: none;
+	.result-body {
+		background: #f5f5f5; border-radius: 12px; padding: 16px;
+		max-height: 400px; overflow-y: auto;
 	}
 	
-	.btn-content {
-		display: flex;
-		align-items: center;
-		gap: 10px;
+	.result-body text {
+		font-size: 14px; color: #333; line-height: 1.7;
+		white-space: pre-wrap; word-break: break-all; font-family: monospace;
 	}
 	
-	.btn-dots {
-		display: flex;
-		gap: 5px;
+	.loading-mask {
+		position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+		z-index: 100;
 	}
 	
-	.btn-dots .dot {
-		width: 8px;
-		height: 8px;
-		background: #fff;
-		border-radius: 50%;
-		animation: bounce 1.4s infinite ease-in-out both;
+	.loading-box {
+		background: #fff; border-radius: 20px; padding: 40px;
+		display: flex; flex-direction: column; align-items: center;
 	}
 	
-	.btn-dots .dot:nth-child(1) { animation-delay: -0.32s; }
-	.btn-dots .dot:nth-child(2) { animation-delay: -0.16s; }
-	
-	@keyframes bounce {
-		0%, 80%, 100% { transform: scale(0); }
-		40% { transform: scale(1); }
+	.spin {
+		width: 40px; height: 40px; border: 4px solid #f0f0f0;
+		border-top: 4px solid #10b981; border-radius: 50%;
+		animation: spin 1s linear infinite; margin-bottom: 16px;
 	}
 	
-	.result-scroll {
-		padding: 20px;
-		max-height: 500px;
-		background: rgba(0, 0, 0, 0.2);
-	}
+	@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 	
-	.code-content {
-		font-family: 'Consolas', 'Monaco', monospace;
-		font-size: 14px;
-		line-height: 1.7;
-		color: rgba(255, 255, 255, 0.9);
-		white-space: pre-wrap;
-		word-break: break-all;
-	}
+	.loading-text { font-size: 15px; color: #333; }
 </style>

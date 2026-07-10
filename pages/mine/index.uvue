@@ -1,313 +1,174 @@
 <template>
 	<view class="container">
-		<view class="profile-header">
+		<view class="header">
 			<view class="header-bg"></view>
-			<view class="profile-content">
+			<view class="header-content">
 				<view class="avatar-wrap">
-					<view class="avatar">
-						<text>👤</text>
-					</view>
+					<view class="avatar">👤</view>
+					<view class="avatar-glow"></view>
 				</view>
-				<view class="profile-info">
-					<text class="username">AI代码助手用户</text>
-					<text class="user-id">ID: 888888</text>
-				</view>
-				<button class="settings-btn" @click="goToSettings">
-					<text>⚙️</text>
-				</button>
+				<text class="name">AI代码助手用户</text>
+				<text class="id">ID: 888888</text>
 			</view>
 		</view>
 		
-		<scroll-view class="main-content" scroll-y>
+		<scroll-view class="content" scroll-y>
 			<view class="stats-card">
-				<view class="stat-item">
-					<text class="stat-value">0</text>
-					<text class="stat-label">问答次数</text>
-				</view>
-				<view class="stat-item">
-					<text class="stat-value">0</text>
-					<text class="stat-label">生成代码</text>
-				</view>
-				<view class="stat-item">
-					<text class="stat-value">0</text>
-					<text class="stat-label">审查代码</text>
-				</view>
-				<view class="stat-item">
-					<text class="stat-value">0</text>
-					<text class="stat-label">解释代码</text>
+				<view class="stat" v-for="(item, i) in stats" :key="i">
+					<text class="stat-num">{{item.value}}</text>
+					<text class="stat-label">{{item.label}}</text>
 				</view>
 			</view>
 			
 			<view class="menu-card">
-				<view class="menu-item" @click="showHistory">
-					<view class="menu-icon" style="background: rgba(59, 130, 246, 0.2);">
-						<text>📜</text>
+				<view class="menu-item" v-for="(item, i) in menuList" :key="i" @click="tap(item)">
+					<view class="menu-icon" :style="{ background: item.color }">
+						<text>{{item.icon}}</text>
 					</view>
-					<text class="menu-title">历史记录</text>
-				</view>
-				<view class="menu-item" @click="showFavorites">
-					<view class="menu-icon" style="background: rgba(239, 68, 68, 0.2);">
-						<text>❤️</text>
-					</view>
-					<text class="menu-title">收藏夹</text>
-				</view>
-				<view class="menu-item" @click="showHelp">
-					<view class="menu-icon" style="background: rgba(16, 185, 129, 0.2);">
-						<text>❓</text>
-					</view>
-					<text class="menu-title">帮助中心</text>
-				</view>
-				<view class="menu-item" @click="showAbout">
-					<view class="menu-icon" style="background: rgba(245, 158, 11, 0.2);">
-						<text>ℹ️</text>
-					</view>
-					<text class="menu-title">关于我们</text>
+					<text class="menu-name">{{item.name}}</text>
+					<text class="menu-arrow">›</text>
 				</view>
 			</view>
 			
 			<view class="tips-card">
-				<view class="tip-icon">💡</view>
-				<view class="tip-info">
-					<text class="tip-title">温馨提示</text>
-					<text class="tip-text">AI生成的代码仅供参考，请自行检查后使用。</text>
+				<text class="tips-icon">💡</text>
+				<view class="tips-info">
+					<text class="tips-title">温馨提示</text>
+					<text class="tips-desc">AI生成的代码仅供参考，请自行检查后使用。</text>
 				</view>
 			</view>
 			
-			<view class="version-info">
-				<text>AI代码助手 v1.0.0</text>
-			</view>
+			<text class="version">AI代码助手 v1.0.0</text>
 		</scroll-view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	const goToSettings = () => {
-		uni.showToast({ title: '设置功能开发中', icon: 'none' })
-	}
+	const stats = [
+		{ value: '0', label: '问答次数' },
+		{ value: '0', label: '生成代码' },
+		{ value: '0', label: '审查代码' },
+		{ value: '0', label: '解释代码' }
+	]
 	
-	const showHistory = () => {
-		uni.showToast({ title: '历史记录功能开发中', icon: 'none' })
-	}
+	const menuList = [
+		{ icon: '📜', name: '历史记录', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+		{ icon: '❤️', name: '收藏夹', color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' },
+		{ icon: '❓', name: '帮助中心', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
+		{ icon: 'ℹ️', name: '关于我们', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }
+	]
 	
-	const showFavorites = () => {
-		uni.showToast({ title: '收藏夹功能开发中', icon: 'none' })
-	}
-	
-	const showHelp = () => {
-		uni.showToast({ title: '帮助中心功能开发中', icon: 'none' })
-	}
-	
-	const showAbout = () => {
-		uni.showModal({
-			title: '关于AI代码助手',
-			content: 'AI代码助手是一款基于阿里云通义千问开发的智能编程辅助工具，提供代码问答、代码生成、代码审查和代码解释功能。',
-			showCancel: false
-		})
+	const tap = (item: any) => {
+		uni.showToast({ title: item.name + '功能开发中', icon: 'none' })
 	}
 </script>
 
-<style>
-	page {
-		height: 100%;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-	}
+<style lang="scss">
+	page { background: #f5f5f5; min-height: 100%; width: 100%; }
 	
-	.container {
-		min-height: 100%;
-		display: flex;
-		flex-direction: column;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-	}
+	.container { display: flex; flex-direction: column; min-height: 100vh; width: 100%; }
 	
-	.profile-header {
-		position: relative;
-		padding: 20px 20px 24px;
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-		overflow: hidden;
-	}
+	.header { position: relative; padding-bottom: 40px; width: 100%; }
 	
 	.header-bg {
-		position: absolute;
-		top: -50%;
-		right: -20%;
-		width: 100%;
-		height: 100%;
-		background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+		position: absolute; top: 0; left: 0; right: 0; height: 260px;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border-radius: 0 0 40px 40px;
 	}
 	
-	.profile-content {
-		display: flex !important;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		width: 100%;
-		box-sizing: border-box;
+	.header-content {
+		position: relative; z-index: 1;
+		padding: 60px 24px 20px; text-align: center;
 	}
 	
-	.avatar-wrap {
-		flex-shrink: 0;
-	}
+	.avatar-wrap { position: relative; display: inline-block; margin-bottom: 16px; }
 	
 	.avatar {
-		width: 64px;
-		height: 64px;
-		background: rgba(255, 255, 255, 0.2);
-		backdrop-filter: blur(10px);
-		border-radius: 20px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 32px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
+		width: 80px; height: 80px; background: rgba(255,255,255,0.3);
+		border-radius: 50%; display: flex; align-items: center; justify-content: center;
+		font-size: 40px; position: relative; z-index: 1;
+		border: 3px solid rgba(255,255,255,0.5);
 	}
 	
-	.profile-info {
-		flex: 1;
-		padding-left: 16px;
+	.avatar-glow {
+		position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+		background: rgba(255,255,255,0.2); border-radius: 50%;
+		animation: pulse 2s infinite;
 	}
 	
-	.username {
-		font-size: 20px;
-		color: #fff;
-		font-weight: 700;
-		display: block;
+	@keyframes pulse {
+		0% { transform: scale(1); opacity: 0.5; }
+		50% { transform: scale(1.1); opacity: 0.8; }
+		100% { transform: scale(1); opacity: 0.5; }
 	}
 	
-	.user-id {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.7);
-		margin-top: 4px;
-		display: block;
+	.name {
+		display: block; font-size: 20px; font-weight: 700; color: #fff;
+		margin-bottom: 6px;
 	}
 	
-	.settings-btn {
-		width: 44px;
-		height: 44px;
-		background: rgba(255, 255, 255, 0.2);
-		border-radius: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 20px;
-		flex-shrink: 0;
-	}
+	.id { display: block; font-size: 13px; color: rgba(255,255,255,0.7); }
 	
-	.main-content {
-		flex: 1;
-		padding: 20px;
-		margin-top: -16px;
+	.content {
+		flex: 1; padding: 0 16px; padding-bottom: 30px;
+		margin-top: -20px; z-index: 2; width: 100%; box-sizing: border-box;
 	}
 	
 	.stats-card {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		background: rgba(255, 255, 255, 0.06);
-		backdrop-filter: blur(20px);
-		border-radius: 24px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		padding: 20px;
-		margin-bottom: 16px;
-		width: 100%;
-		box-sizing: border-box;
+		background: #fff; border-radius: 20px; padding: 24px;
+		display: flex; flex-direction: row; justify-content: space-around;
+		box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 16px;
+		width: 100%; box-sizing: border-box;
 	}
 	
-	.stat-item {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
+	.stat { text-align: center; flex: 1; }
+	
+	.stat-num {
+		display: block; font-size: 24px; font-weight: 700;
+		color: #667eea; margin-bottom: 4px;
 	}
 	
-	.stat-value {
-		font-size: 24px;
-		font-weight: 700;
-		color: #fff;
-	}
-	
-	.stat-label {
-		font-size: 11px;
-		color: rgba(255, 255, 255, 0.6);
-		margin-top: 4px;
-	}
+	.stat-label { display: block; font-size: 13px; color: #999; }
 	
 	.menu-card {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		background: rgba(255, 255, 255, 0.06);
-		backdrop-filter: blur(20px);
-		border-radius: 24px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		padding: 16px;
-		margin-bottom: 16px;
-		width: 100%;
-		box-sizing: border-box;
+		background: #fff; border-radius: 20px; padding: 16px;
+		display: flex; flex-direction: row; flex-wrap: wrap;
+		box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 16px;
+		width: 100%; box-sizing: border-box;
 	}
 	
 	.menu-item {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-	
-	.menu-item:active {
-		opacity: 0.7;
+		display: flex; flex-direction: column; align-items: center;
+		padding: 12px 0; width: 25%;
 	}
 	
 	.menu-icon {
-		width: 44px;
-		height: 44px;
-		border-radius: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 20px;
+		width: 48px; height: 48px; border-radius: 14px;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 22px; margin-bottom: 8px;
 	}
 	
-	.menu-title {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.8);
-		margin-top: 6px;
-	}
+	.menu-name { font-size: 13px; color: #333; text-align: center; }
+	
+	.menu-arrow { display: none; }
 	
 	.tips-card {
-		display: flex;
-		background: rgba(245, 158, 11, 0.15);
-		border-radius: 24px;
-		border: 1px solid rgba(245, 158, 11, 0.3);
-		padding: 16px;
-		margin-bottom: 16px;
+		background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+		border-radius: 20px; padding: 20px; display: flex;
+		align-items: flex-start; margin-bottom: 20px;
+		width: 100%; box-sizing: border-box;
 	}
 	
-	.tip-icon {
-		font-size: 24px;
-		margin-right: 12px;
+	.tips-icon { font-size: 24px; margin-right: 12px; flex-shrink: 0; }
+	
+	.tips-info { flex: 1; }
+	
+	.tips-title {
+		display: block; font-size: 15px; font-weight: 600;
+		color: #92400e; margin-bottom: 6px;
 	}
 	
-	.tip-info {
-		flex: 1;
-	}
+	.tips-desc { display: block; font-size: 13px; color: #b45309; line-height: 1.5; }
 	
-	.tip-title {
-		font-size: 14px;
-		font-weight: 600;
-		color: #fbbf24;
-		display: block;
-	}
-	
-	.tip-text {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.7);
-		margin-top: 4px;
-		display: block;
-		line-height: 1.5;
-	}
-	
-	.version-info {
-		text-align: center;
-		padding: 16px;
-	}
-	
-	.version-info text {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.4);
-	}
+	.version { display: block; text-align: center; font-size: 12px; color: #bbb; padding-bottom: 20px; }
 </style>

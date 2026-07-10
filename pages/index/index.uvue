@@ -1,84 +1,51 @@
 <template>
-	<view class="container">
-		<view class="chat-header">
-			<view class="header-bg"></view>
-			<view class="header-content">
-				<view class="avatar-wrap">
-					<view class="avatar">
-						<text>🤖</text>
+	<view class="page-bg">
+		<view class="container">
+			<view class="chat-container">
+				<view class="welcome-section">
+					<view class="avatar-wrap">
+						<view class="avatar">
+							<text>🤖</text>
+						</view>
+						<view class="avatar-glow"></view>
 					</view>
-					<view class="status-dot"></view>
-				</view>
-				<view class="header-info">
-					<text class="name">AI代码助手</text>
-					<view class="status">
-						<view class="online-dot"></view>
-						<text>在线</text>
-					</view>
-				</view>
-			</view>
-		</view>
-		
-		<scroll-view class="chat-container" scroll-y :scroll-top="scrollTop" scroll-with-animation>
-			<view class="welcome-section">
-				<view class="welcome-card">
-					<text class="welcome-icon">👋</text>
-					<text class="welcome-title">你好！我是你的AI代码助手</text>
-					<text class="welcome-desc">有什么编程问题可以问我，我可以帮你写代码、查Bug、解释原理</text>
+					<text class="welcome-title">AI代码助手</text>
+					<text class="welcome-subtitle">有什么编程问题，随时问我</text>
 					<view class="quick-tags">
-						<view class="quick-tag" v-for="(tag, i) in quickTags" :key="i" @click="sendQuickTag(tag)">
-							<text>{{tag}}</text>
+						<view class="tag" v-for="(item, i) in quickTags" :key="i" @click="sendTag(item)">
+							<text>{{item}}</text>
 						</view>
+					</view>
+				</view>
+				
+				<view class="msg-list">
+					<view class="msg-item user" v-for="(msg, i) in messages" :key="i">
+						<view class="msg-avatar">{{msg.role === 'user' ? '👤' : '🤖'}}</view>
+						<view class="msg-content">
+							<view class="msg-bubble" :class="msg.role">
+								<text class="msg-text">{{msg.content}}</text>
+							</view>
+							<text class="msg-time">{{msg.time}}</text>
+						</view>
+					</view>
+				</view>
+				
+				<view class="loading-wrap" v-if="loading">
+					<view class="loading-bubble">
+						<view class="dot"></view>
+						<view class="dot"></view>
+						<view class="dot"></view>
 					</view>
 				</view>
 			</view>
 			
-			<view class="message-list">
-				<view class="message-item" v-for="(msg, index) in messages" :key="index">
-					<view class="message" :class="msg.role === 'user' ? 'user-msg' : 'ai-msg'">
-						<view class="msg-avatar" :class="msg.role === 'user' ? 'user-avatar' : 'ai-avatar'">
-							<text>{{msg.role === 'user' ? '👤' : '🤖'}}</text>
-						</view>
-						<view class="msg-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'ai-bubble'">
-							<text class="msg-text">{{msg.content}}</text>
-						</view>
-					</view>
-					<text class="msg-time">{{msg.time}}</text>
-				</view>
-			</view>
-			
-			<view class="loading-indicator" v-if="loading">
-				<view class="loading-bubble">
-					<view class="typing-dots">
-						<view class="dot"></view>
-						<view class="dot"></view>
-						<view class="dot"></view>
-					</view>
-					<text>正在思考...</text>
-				</view>
-			</view>
-		</scroll-view>
-		
-		<view class="input-section">
-			<view class="input-bar">
-				<button class="voice-btn" @click="showVoice">
-					<text>🎤</text>
-				</button>
-				<view class="input-wrap">
-					<input 
-						class="input-field" 
-						v-model="question" 
-						placeholder="输入问题..."
-						confirm-type="send"
-						@confirm="sendQuestion"
-					/>
-					<button class="clear-btn" v-if="question" @click="clearInput">
-						<text>✕</text>
+			<view class="input-area">
+				<view class="input-box">
+					<input v-model="question" placeholder="输入问题..." @confirm="send"/>
+					<button class="send-btn" :disabled="!question.trim() || loading" @click="send">
+						<text>发送</text>
 					</button>
 				</view>
-				<button class="send-btn" :disabled="loading || !question.trim()" @click="sendQuestion">
-					<text>➤</text>
-				</button>
 			</view>
 		</view>
 	</view>
@@ -87,52 +54,34 @@
 <script setup lang="uts">
 	import { ref, nextTick } from 'vue'
 	
-	type Message = {
+	type Msg = {
 		role: string
 		content: string
 		time: string
 	}
 	
 	const question = ref('')
-	const messages = ref<Message[]>([])
+	const messages = ref<Msg[]>([])
 	const loading = ref(false)
-	const scrollTop = ref(0)
 	
-	const quickTags = ['JavaScript', 'Vue3', 'Python', 'React', 'TypeScript', 'Node.js']
+	const quickTags = ['JavaScript数组去重', 'Python爬虫示例', 'Vue组件开发', 'SQL优化']
 	
 	const formatTime = () => {
 		const now = new Date()
-		const hours = now.getHours().toString().padStart(2, '0')
-		const minutes = now.getMinutes().toString().padStart(2, '0')
-		return `${hours}:${minutes}`
+		return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
 	}
 	
-	const clearInput = () => {
-		question.value = ''
+	const sendTag = (tag: string) => {
+		question.value = tag
+		send()
 	}
 	
-	const showVoice = () => {
-		uni.showToast({ title: '语音输入开发中', icon: 'none' })
-	}
-	
-	const scrollToBottom = async () => {
-		await nextTick()
-		scrollTop.value = 999999
-	}
-	
-	const sendQuickTag = (tag: string) => {
-		question.value = `${tag}相关的问题`
-		sendQuestion()
-	}
-	
-	const sendQuestion = async () => {
+	const send = async () => {
 		if (!question.value.trim() || loading.value) return
 		
 		messages.value.push({ role: 'user', content: question.value, time: formatTime() })
 		question.value = ''
 		loading.value = true
-		
-		await scrollToBottom()
 		
 		try {
 			const res: any = await uniCloud.callFunction({
@@ -140,438 +89,270 @@
 				data: { question: messages.value[messages.value.length - 1].content }
 			})
 			
-			if (res.result && res.result.success) {
+			if (res.result?.success) {
 				messages.value.push({ role: 'ai', content: res.result.data, time: formatTime() })
 			} else {
-				let errorMsg = '抱歉，我无法回答这个问题：' + (res.result?.message || '未知错误')
-				if (res.result?.error) {
-					errorMsg += '\n错误详情: ' + res.result.error
-				}
-				if (res.result?.status) {
-					errorMsg += '\n状态码: ' + res.result.status
-				}
-				if (res.result?.response) {
-					errorMsg += '\n响应: ' + JSON.stringify(res.result.response)
-				}
-				messages.value.push({ role: 'ai', content: errorMsg, time: formatTime() })
+				messages.value.push({ role: 'ai', content: '抱歉，无法回答，请重试', time: formatTime() })
 			}
-		} catch (error) {
-			messages.value.push({ role: 'ai', content: '网络错误：' + (error as Error).message, time: formatTime() })
+		} catch (e) {
+			messages.value.push({ role: 'ai', content: '网络错误，请检查网络', time: formatTime() })
 		} finally {
 			loading.value = false
-			await scrollToBottom()
+			await nextTick()
 		}
 	}
 </script>
 
-<style>
+<style lang="scss">
 	page {
-		height: 100%;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+		min-height: 100%;
+	}
+	
+	.page-bg {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(180deg, #667eea 0%, #764ba2 40%, #f093fb 100%);
+		z-index: 0;
 	}
 	
 	.container {
-		height: 100%;
+		position: relative;
+		z-index: 1;
 		display: flex;
 		flex-direction: column;
-		background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-	}
-	
-	.chat-header {
-		position: relative;
-		padding: 12px 16px;
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-		overflow: hidden;
-	}
-	
-	.header-bg {
-		position: absolute;
-		top: -50%;
-		right: -20%;
-		width: 100%;
-		height: 100%;
-		background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-	}
-	
-	.header-content {
-		position: relative;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		gap: 12px;
-	}
-	
-	.avatar-wrap {
-		position: relative;
-	}
-	
-	.avatar {
-		width: 36px;
-		height: 36px;
-		background: rgba(255, 255, 255, 0.2);
-		backdrop-filter: blur(10px);
-		border-radius: 10px;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		justify-content: center;
-		-webkit-justify-content: center;
-		font-size: 18px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
-	}
-	
-	.status-dot {
-		position: absolute;
-		bottom: 2px;
-		right: 2px;
-		width: 12px;
-		height: 12px;
-		background: #22c55e;
-		border-radius: 50%;
-		border: 2px solid #6366f1;
-	}
-	
-	.header-info {
-		flex: 1;
-	}
-	
-	.name {
-		font-size: 18px;
-		color: #fff;
-		font-weight: 700;
-		display: block;
-	}
-	
-	.status {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		margin-top: 2px;
-	}
-	
-	.online-dot {
-		width: 6px;
-		height: 6px;
-		background: #22c55e;
-		border-radius: 50%;
-		animation: pulse 2s infinite;
-	}
-	
-	.status text {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.8);
-	}
-	
-	@keyframes pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50% { opacity: 0.6; transform: scale(1.2); }
+		height: 100vh;
 	}
 	
 	.chat-container {
 		flex: 1;
+		overflow-y: auto;
 		padding: 20px;
+		padding-bottom: 120px;
 	}
 	
 	.welcome-section {
-		margin-bottom: 24px;
-	}
-	
-	.welcome-card {
-		background: rgba(255, 255, 255, 0.08);
-		backdrop-filter: blur(20px);
-		border-radius: 16px;
-		padding: 16px;
 		text-align: center;
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		padding: 50px 0 30px;
 	}
 	
-	.welcome-icon {
-		font-size: 36px;
-		display: block;
-		margin-bottom: 8px;
+	.avatar-wrap {
+		position: relative;
+		display: inline-block;
+		margin-bottom: 20px;
+	}
+	
+	.avatar {
+		width: 80px;
+		height: 80px;
+		background: rgba(255,255,255,0.3);
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 40px;
+		position: relative;
+		z-index: 1;
+		border: 3px solid rgba(255,255,255,0.5);
+	}
+	
+	.avatar-glow {
+		position: absolute;
+		top: -10px;
+		left: -10px;
+		right: -10px;
+		bottom: -10px;
+		background: rgba(255,255,255,0.2);
+		border-radius: 50%;
+		animation: pulse 2s infinite;
+	}
+	
+	@keyframes pulse {
+		0% { transform: scale(1); opacity: 0.5; }
+		50% { transform: scale(1.1); opacity: 0.8; }
+		100% { transform: scale(1); opacity: 0.5; }
 	}
 	
 	.welcome-title {
-		font-size: 16px;
-		color: #fff;
-		font-weight: 600;
 		display: block;
+		font-size: 24px;
+		font-weight: 700;
+		color: #fff;
+		margin-bottom: 6px;
+		text-shadow: 0 2px 10px rgba(0,0,0,0.1);
 	}
 	
-	.welcome-desc {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.6);
-		margin-top: 4px;
+	.welcome-subtitle {
 		display: block;
-		line-height: 1.5;
+		font-size: 14px;
+		color: rgba(255,255,255,0.8);
+		margin-bottom: 24px;
 	}
 	
 	.quick-tags {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 6px;
-		margin-top: 12px;
+		gap: 10px;
 	}
 	
-	.quick-tag {
-		background: rgba(99, 102, 241, 0.3);
-		padding: 6px 12px;
-		border-radius: 16px;
-		border: 1px solid rgba(99, 102, 241, 0.5);
+	.tag {
+		background: rgba(255,255,255,0.2);
+		padding: 10px 18px;
+		border-radius: 25px;
+		border: 1px solid rgba(255,255,255,0.3);
 	}
 	
-	.quick-tag text {
-		font-size: 12px;
-		color: #a5b4fc;
+	.tag text {
+		font-size: 13px;
+		color: #fff;
 	}
 	
-	.quick-tag:active {
-		background: rgba(99, 102, 241, 0.5);
+	.tag:active {
+		background: rgba(255,255,255,0.35);
+		transform: scale(0.96);
 	}
 	
-	.message-list {
-		padding-bottom: 20px;
+	.msg-list {
+		padding: 0 10px;
 	}
 	
-	.message-item {
+	.msg-item {
 		display: flex;
-		flex-direction: column;
 		margin-bottom: 20px;
 	}
 	
-	.message {
-		display: flex;
-		max-width: 85%;
-	}
-	
-	.user-msg {
-		align-self: flex-end;
+	.msg-item.user {
 		flex-direction: row-reverse;
 	}
 	
-	.ai-msg {
-		align-self: flex-start;
-	}
-	
 	.msg-avatar {
-		width: 40px;
-		height: 40px;
-		border-radius: 12px;
+		width: 36px;
+		height: 36px;
+		background: rgba(255,255,255,0.2);
+		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 20px;
+		font-size: 16px;
 		flex-shrink: 0;
 	}
 	
-	.user-avatar {
-		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-	}
-	
-	.ai-avatar {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+	.msg-content {
+		max-width: 80%;
+		margin: 0 12px;
 	}
 	
 	.msg-bubble {
-		padding: 14px 18px;
-		border-radius: 20px;
-		margin-left: 10px;
-		position: relative;
+		padding: 12px 16px;
+		border-radius: 18px;
+		line-height: 1.6;
 	}
 	
-	.user-bubble {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		margin-left: 10px;
+	.msg-bubble.user {
+		background: #fff;
 		border-bottom-right-radius: 6px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 	}
 	
-	.ai-bubble {
-		background: rgba(255, 255, 255, 0.1);
+	.msg-bubble.ai {
+		background: rgba(255,255,255,0.2);
 		backdrop-filter: blur(10px);
-		border: 1px solid rgba(255, 255, 255, 0.15);
 		border-bottom-left-radius: 6px;
+		border: 1px solid rgba(255,255,255,0.3);
 	}
 	
 	.msg-text {
 		font-size: 15px;
-		line-height: 1.65;
 		white-space: pre-wrap;
 		word-break: break-word;
 	}
 	
-	.user-bubble .msg-text {
+	.msg-bubble.user .msg-text {
+		color: #333;
+	}
+	
+	.msg-bubble.ai .msg-text {
 		color: #fff;
 	}
 	
-	.ai-bubble .msg-text {
-		color: rgba(255, 255, 255, 0.9);
-	}
-	
 	.msg-time {
+		display: block;
 		font-size: 11px;
-		color: rgba(255, 255, 255, 0.4);
-		margin-top: 6px;
+		color: rgba(255,255,255,0.5);
+		margin-top: 4px;
 		text-align: center;
 	}
 	
-	.loading-indicator {
-		display: flex;
-		justify-content: flex-start;
-		padding-bottom: 10px;
+	.loading-wrap {
+		padding-left: 48px;
 	}
 	
 	.loading-bubble {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 14px 20px;
-		background: rgba(255, 255, 255, 0.1);
-		backdrop-filter: blur(10px);
-		border-radius: 20px;
+		display: inline-flex;
+		gap: 6px;
+		padding: 10px 16px;
+		background: rgba(255,255,255,0.2);
+		border-radius: 18px;
 		border-bottom-left-radius: 6px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
 	}
 	
-	.typing-dots {
-		display: flex;
-		gap: 5px;
-	}
-	
-	.typing-dots .dot {
-		width: 8px;
-		height: 8px;
-		background: #a5b4fc;
+	.loading-bubble .dot {
+		width: 6px;
+		height: 6px;
+		background: #fff;
 		border-radius: 50%;
-		animation: bounce 1.4s infinite ease-in-out both;
+		animation: bounce 1.4s infinite;
 	}
 	
-	.typing-dots .dot:nth-child(1) { animation-delay: -0.32s; }
-	.typing-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+	.loading-bubble .dot:nth-child(2) { animation-delay: 0.16s; }
+	.loading-bubble .dot:nth-child(3) { animation-delay: 0.32s; }
 	
 	@keyframes bounce {
 		0%, 80%, 100% { transform: scale(0); }
 		40% { transform: scale(1); }
 	}
 	
-	.loading-bubble text {
-		font-size: 14px;
-		color: rgba(255, 255, 255, 0.6);
-	}
-	
-	.input-section {
-		background: rgba(15, 23, 42, 0.95);
+	.input-area {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: rgba(255,255,255,0.95);
 		backdrop-filter: blur(20px);
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		padding: 8px 16px;
-		padding-bottom: calc(8px + env(safe-area-inset-bottom));
+		padding: 12px 16px;
+		padding-bottom: calc(12px + env(safe-area-inset-bottom));
+		box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
 	}
 	
-	.input-bar {
-		display: flex !important;
-		display: -webkit-flex !important;
-		flex-direction: row !important;
-		align-items: center !important;
-		gap: 8px;
-		width: 100%;
-		box-sizing: border-box;
-	}
-	
-	.voice-btn {
-		width: 40px;
-		height: 40px;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 50%;
+	.input-box {
 		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		justify-content: center;
-		-webkit-justify-content: center;
-		font-size: 18px;
-		flex-shrink: 0;
-		-webkit-flex-shrink: 0;
-		padding: 0;
-		margin: 0;
+		gap: 10px;
+		background: #f0f0f0;
+		border-radius: 28px;
+		padding: 6px;
 	}
 	
-	.input-wrap {
+	.input-box input {
 		flex: 1;
-		-webkit-flex: 1;
-		position: relative;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 20px;
-		padding: 0 12px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
 		height: 40px;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-	}
-	
-	.input-field {
-		width: 100%;
-		height: 40px;
-		font-size: 14px;
-		color: #fff;
+		font-size: 15px;
 		background: transparent;
-		padding: 0;
-		margin: 0;
-	}
-	
-	.input-field::placeholder {
-		color: rgba(255, 255, 255, 0.4);
-	}
-	
-	.clear-btn {
-		position: absolute;
-		right: 8px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 24px;
-		height: 24px;
-		background: rgba(255, 255, 255, 0.2);
-		border-radius: 50%;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		justify-content: center;
-		-webkit-justify-content: center;
-		padding: 0;
-		margin: 0;
-	}
-	
-	.clear-btn text {
-		font-size: 14px;
-		color: rgba(255, 255, 255, 0.7);
-		line-height: 1;
+		padding: 0 16px;
 	}
 	
 	.send-btn {
-		width: 40px;
-		height: 40px;
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		border-radius: 50%;
-		display: flex;
-		display: -webkit-flex;
-		align-items: center;
-		-webkit-align-items: center;
-		justify-content: center;
-		-webkit-justify-content: center;
-		font-size: 18px;
-		flex-shrink: 0;
-		-webkit-flex-shrink: 0;
-		box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-		padding: 0;
-		margin: 0;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: #fff;
+		padding: 10px 22px;
+		border-radius: 20px;
+		font-size: 14px;
+		font-weight: 500;
 	}
 	
 	.send-btn[disabled] {
-		background: rgba(255, 255, 255, 0.2);
-		box-shadow: none;
+		background: #ccc;
 	}
 </style>

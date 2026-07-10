@@ -27,6 +27,13 @@
 				"navigationBarTitleText": "代码解释",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/mine/index",
+			"style": {
+				"navigationBarTitleText": "我的",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {
@@ -56,6 +63,10 @@
 			{
 				"pagePath": "pages/explain/index",
 				"text": "解释"
+			},
+			{
+				"pagePath": "pages/mine/index",
+				"text": "我的"
 			}
 		]
 	},

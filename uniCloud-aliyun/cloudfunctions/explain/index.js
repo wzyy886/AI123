@@ -1,11 +1,10 @@
 'use strict';
 
+const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ';
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+
 exports.main = async (event, context) => {
   const { code, language = 'JavaScript' } = event;
-  
-  const config = uniCloud.getConfig('ai-config');
-  const API_KEY = config.dashscope.apiKey;
-  const BASE_URL = config.dashscope.baseUrl;
   
   if (!code) {
     return {
@@ -14,16 +13,9 @@ exports.main = async (event, context) => {
     };
   }
 
-  if (!API_KEY) {
-    return {
-      success: false,
-      message: '请在uni-config-center的ai-config中配置API_KEY'
-    };
-  }
-
   try {
     const res = await uniCloud.httpclient.request(
-      BASE_URL + '/services/aigc/text-generation/generation',
+      BASE_URL + '/chat/completions',
       {
         method: 'POST',
         headers: {
@@ -32,42 +24,43 @@ exports.main = async (event, context) => {
         },
         data: {
           model: 'qwen-turbo',
-          input: {
-            messages: [
-              {
-                role: 'system',
-                content: `你是一个专业的代码解释专家。请用通俗易懂的语言解释${language}代码的含义和工作原理，包括：\n1. 代码的整体功能和目的\n2. 关键部分的详细解释\n3. 使用的技术和设计模式\n4. 执行流程和逻辑\n\n请用结构化的方式输出解释结果。`
-              },
-              {
-                role: 'user',
-                content: `请解释以下${language}代码：\n\n${code}`
-              }
-            ]
-          },
-          parameters: {
-            result_format: 'message'
-          }
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个专业的代码解释专家。请用通俗易懂的语言解释${language}代码。`
+            },
+            {
+              role: 'user',
+              content: `请解释以下${language}代码：\n\n${code}`
+            }
+          ],
+          max_tokens: 2048
         },
-        dataType: 'json'
+        dataType: 'json',
+        sslVerify: false,
+        timeout: 30000
       }
     );
 
-    if (res.status === 200 && res.data && res.data.output && res.data.output.choices) {
+    if (res.status === 200 && res.data && res.data.choices) {
       return {
         success: true,
-        data: res.data.output.choices[0].message.content
+        data: res.data.choices[0].message.content
       };
     } else {
       return {
         success: false,
-        message: 'AI返回数据格式异常'
+        message: 'AI返回数据格式异常',
+        status: res.status,
+        response: res.data
       };
     }
   } catch (error) {
     console.error('Explain API Error:', error);
     return {
       success: false,
-      message: 'AI服务调用失败，请稍后重试'
+      message: 'AI服务调用失败',
+      error: error.message || String(error)
     };
   }
 };

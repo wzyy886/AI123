@@ -1,11 +1,10 @@
 'use strict';
 
+const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ';
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+
 exports.main = async (event, context) => {
   const { description, language = 'JavaScript' } = event;
-  
-  const config = uniCloud.getConfig('ai-config');
-  const API_KEY = config.dashscope.apiKey;
-  const BASE_URL = config.dashscope.baseUrl;
   
   if (!description) {
     return {
@@ -14,16 +13,9 @@ exports.main = async (event, context) => {
     };
   }
 
-  if (!API_KEY) {
-    return {
-      success: false,
-      message: '请在uni-config-center的ai-config中配置API_KEY'
-    };
-  }
-
   try {
     const res = await uniCloud.httpclient.request(
-      BASE_URL + '/services/aigc/text-generation/generation',
+      BASE_URL + '/chat/completions',
       {
         method: 'POST',
         headers: {
@@ -32,42 +24,43 @@ exports.main = async (event, context) => {
         },
         data: {
           model: 'qwen-turbo',
-          input: {
-            messages: [
-              {
-                role: 'system',
-                content: `你是一个专业的代码生成助手。根据用户描述生成高质量的${language}代码。代码应该完整、可运行，并包含适当的注释。输出格式应该是纯代码或者Markdown代码块。`
-              },
-              {
-                role: 'user',
-                content: `请根据以下描述生成${language}代码：\n\n${description}`
-              }
-            ]
-          },
-          parameters: {
-            result_format: 'message'
-          }
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个专业的代码生成助手。根据用户描述生成高质量的${language}代码。`
+            },
+            {
+              role: 'user',
+              content: `请根据以下描述生成${language}代码：\n\n${description}`
+            }
+          ],
+          max_tokens: 2048
         },
-        dataType: 'json'
+        dataType: 'json',
+        sslVerify: false,
+        timeout: 30000
       }
     );
 
-    if (res.status === 200 && res.data && res.data.output && res.data.output.choices) {
+    if (res.status === 200 && res.data && res.data.choices) {
       return {
         success: true,
-        data: res.data.output.choices[0].message.content
+        data: res.data.choices[0].message.content
       };
     } else {
       return {
         success: false,
-        message: 'AI返回数据格式异常'
+        message: 'AI返回数据格式异常',
+        status: res.status,
+        response: res.data
       };
     }
   } catch (error) {
     console.error('Generate API Error:', error);
     return {
       success: false,
-      message: 'AI服务调用失败，请稍后重试'
+      message: 'AI服务调用失败',
+      error: error.message || String(error)
     };
   }
 };

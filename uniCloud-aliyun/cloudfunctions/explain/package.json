@@ -1,0 +1,6 @@
+{
+  "name": "explain",
+  "version": "1.0.0",
+  "description": "AI代码解释云函数",
+  "main": "index.js"
+}

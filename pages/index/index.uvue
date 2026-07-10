@@ -179,7 +179,7 @@
 	
 	.chat-header {
 		position: relative;
-		padding: 20px 20px 16px;
+		padding: 12px 16px;
 		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
 		overflow: hidden;
 	}
@@ -196,8 +196,10 @@
 	.header-content {
 		position: relative;
 		display: flex;
+		display: -webkit-flex;
 		align-items: center;
-		gap: 16px;
+		-webkit-align-items: center;
+		gap: 12px;
 	}
 	
 	.avatar-wrap {
@@ -205,15 +207,18 @@
 	}
 	
 	.avatar {
-		width: 40px;
-		height: 40px;
+		width: 36px;
+		height: 36px;
 		background: rgba(255, 255, 255, 0.2);
 		backdrop-filter: blur(10px);
-		border-radius: 12px;
+		border-radius: 10px;
 		display: flex;
+		display: -webkit-flex;
 		align-items: center;
+		-webkit-align-items: center;
 		justify-content: center;
-		font-size: 20px;
+		-webkit-justify-content: center;
+		font-size: 18px;
 		border: 2px solid rgba(255, 255, 255, 0.3);
 	}
 	
@@ -465,9 +470,13 @@
 	}
 	
 	.input-bar {
-		display: flex;
-		align-items: center;
+		display: flex !important;
+		display: -webkit-flex !important;
+		flex-direction: row !important;
+		align-items: center !important;
 		gap: 8px;
+		width: 100%;
+		box-sizing: border-box;
 	}
 	
 	.voice-btn {
@@ -476,19 +485,31 @@
 		background: rgba(255, 255, 255, 0.1);
 		border-radius: 50%;
 		display: flex;
+		display: -webkit-flex;
 		align-items: center;
+		-webkit-align-items: center;
 		justify-content: center;
+		-webkit-justify-content: center;
 		font-size: 18px;
 		flex-shrink: 0;
+		-webkit-flex-shrink: 0;
+		padding: 0;
+		margin: 0;
 	}
 	
 	.input-wrap {
 		flex: 1;
+		-webkit-flex: 1;
 		position: relative;
 		background: rgba(255, 255, 255, 0.1);
 		border-radius: 20px;
 		padding: 0 12px;
 		border: 1px solid rgba(255, 255, 255, 0.15);
+		height: 40px;
+		display: flex;
+		display: -webkit-flex;
+		align-items: center;
+		-webkit-align-items: center;
 	}
 	
 	.input-field {
@@ -497,6 +518,8 @@
 		font-size: 14px;
 		color: #fff;
 		background: transparent;
+		padding: 0;
+		margin: 0;
 	}
 	
 	.input-field::placeholder {
@@ -513,8 +536,13 @@
 		background: rgba(255, 255, 255, 0.2);
 		border-radius: 50%;
 		display: flex;
+		display: -webkit-flex;
 		align-items: center;
+		-webkit-align-items: center;
 		justify-content: center;
+		-webkit-justify-content: center;
+		padding: 0;
+		margin: 0;
 	}
 	
 	.clear-btn text {
@@ -529,11 +557,17 @@
 		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 		border-radius: 50%;
 		display: flex;
+		display: -webkit-flex;
 		align-items: center;
+		-webkit-align-items: center;
 		justify-content: center;
+		-webkit-justify-content: center;
 		font-size: 18px;
 		flex-shrink: 0;
+		-webkit-flex-shrink: 0;
 		box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+		padding: 0;
+		margin: 0;
 	}
 	
 	.send-btn[disabled] {

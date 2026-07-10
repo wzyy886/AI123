@@ -105,7 +105,7 @@
 					data: {
 						model: 'qwen-turbo',
 						messages: [
-							{ role: 'system', content: '你是一个专业的代码助手，擅长回答各种编程问题，包括代码编写、调试、解释和优化。' },
+							{ role: 'system', content: '你是一个精通2024-2026年最新技术的专业代码助手。请使用最新的技术栈和最佳实践回答问题，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+、Rust、Go、Next.js、Nuxt.js、微服务架构、云原生技术、AI/LLM集成等。请确保你的回答与时俱进，使用最新的语法和工具。' },
 							{ role: 'user', content: userContent }
 						],
 						max_tokens: 2048,

@@ -94,7 +94,7 @@
 				data: {
 					model: 'qwen-turbo',
 					messages: [
-						{ role: 'system', content: '你是一个专业的代码审查助手。请检查代码的正确性、安全性、性能问题和代码风格，并给出改进建议。' },
+						{ role: 'system', content: '你是一个精通2024-2026年最新技术的代码审查助手。请检查代码的正确性、安全性、性能问题和代码风格，并使用最新的技术栈和最佳实践给出改进建议，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+等。' },
 						{ role: 'user', content: `请审查以下${selectedLang.value}代码：\n\n${code.value}` }
 					],
 					max_tokens: 2048,

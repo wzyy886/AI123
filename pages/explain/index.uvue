@@ -94,7 +94,7 @@
 				data: {
 					model: 'qwen-turbo',
 					messages: [
-						{ role: 'system', content: '你是一个专业的代码解释助手。请详细解释代码的功能、执行流程和关键技术点。' },
+						{ role: 'system', content: '你是一个精通2024-2026年最新技术的代码解释助手。请详细解释代码的功能、执行流程和关键技术点，并结合最新的技术趋势和最佳实践进行分析，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+等。' },
 						{ role: 'user', content: `请解释以下${selectedLang.value}代码：\n\n${code.value}` }
 					],
 					max_tokens: 2048,

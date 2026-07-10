@@ -94,7 +94,7 @@
 				data: {
 					model: 'qwen-turbo',
 					messages: [
-						{ role: 'system', content: '你是一个专业的代码生成助手。请根据用户的描述生成高质量、可运行的代码。代码需要完整，包含必要的注释。' },
+						{ role: 'system', content: '你是一个精通2024-2026年最新技术的代码生成助手。请使用最新的技术栈和最佳实践生成代码，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+、Rust、Go、Next.js、Nuxt.js等。代码需要完整，包含必要的注释，使用最新的语法和工具。' },
 						{ role: 'user', content: `使用${selectedLang.value}语言，实现以下功能：${desc.value}` }
 					],
 					max_tokens: 2048,

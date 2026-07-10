@@ -84,16 +84,30 @@
 		result.value = ''
 		
 		try {
-			const res: any = await uniCloud.callFunction({
-				name: 'generate',
-				data: { description: desc.value, language: selectedLang.value }
+			const res: any = await uni.request({
+				url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+				method: 'POST',
+				header: {
+					'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+					'Content-Type': 'application/json'
+				},
+				data: {
+					model: 'qwen-turbo',
+					messages: [
+						{ role: 'system', content: '你是一个专业的代码生成助手。请根据用户的描述生成高质量、可运行的代码。代码需要完整，包含必要的注释。' },
+						{ role: 'user', content: `使用${selectedLang.value}语言，实现以下功能：${desc.value}` }
+					],
+					max_tokens: 2048,
+					temperature: 0.7
+				},
+				timeout: 60000
 			})
-			if (res.result?.success) { 
-				result.value = res.result.data 
+			if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) { 
+				result.value = res.data.choices[0].message.content 
 				saveHistory('generate', desc.value)
-			} else { uni.showToast({ title: '生成失败', icon: 'none' }) }
-		} catch (e) {
-			uni.showToast({ title: '网络错误', icon: 'none' })
+			} else { uni.showToast({ title: '生成失败: ' + JSON.stringify(res.data), icon: 'none' }) }
+		} catch (e: any) {
+			uni.showToast({ title: '网络错误: ' + (e.message || String(e)), icon: 'none' })
 		} finally { loading.value = false }
 	}
 	

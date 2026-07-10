@@ -95,19 +95,33 @@
 			loading.value = true
 			
 			try {
-				const res: any = await uniCloud.callFunction({
-					name: 'chat',
-					data: { question: userContent }
+				const res: any = await uni.request({
+					url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+					method: 'POST',
+					header: {
+						'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+						'Content-Type': 'application/json'
+					},
+					data: {
+						model: 'qwen-turbo',
+						messages: [
+							{ role: 'system', content: '你是一个专业的代码助手，擅长回答各种编程问题，包括代码编写、调试、解释和优化。' },
+							{ role: 'user', content: userContent }
+						],
+						max_tokens: 2048,
+						temperature: 0.7
+					},
+					timeout: 60000
 				})
 				
-				if (res.result?.success) {
-					messages.value.push({ role: 'ai', content: res.result.data, time: formatTime() })
+				if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
+					messages.value.push({ role: 'ai', content: res.data.choices[0].message.content, time: formatTime() })
 					saveHistory('chat', userContent)
 				} else {
-					messages.value.push({ role: 'ai', content: '抱歉，无法回答，请重试', time: formatTime() })
+					messages.value.push({ role: 'ai', content: 'AI服务返回异常: ' + JSON.stringify(res.data), time: formatTime() })
 				}
-			} catch (e) {
-				messages.value.push({ role: 'ai', content: '网络错误，请检查网络', time: formatTime() })
+			} catch (e: any) {
+				messages.value.push({ role: 'ai', content: '网络错误: ' + (e.message || String(e)), time: formatTime() })
 			} finally {
 				loading.value = false
 				await nextTick()

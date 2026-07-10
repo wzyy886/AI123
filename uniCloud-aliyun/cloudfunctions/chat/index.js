@@ -1,7 +1,8 @@
 'use strict';
 
-const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ';
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const aiConfig = require('../common/uni-config-center/ai-config/index.js');
+const API_KEY = aiConfig.dashscope.apiKey;
+const BASE_URL = aiConfig.dashscope.baseUrl;
 
 exports.main = async (event, context) => {
   const { question } = event;

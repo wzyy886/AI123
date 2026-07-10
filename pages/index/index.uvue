@@ -105,7 +105,7 @@
 					data: {
 						model: 'qwen-turbo',
 						messages: [
-							{ role: 'system', content: '你是一个精通2024-2026年最新技术的专业代码助手。请使用最新的技术栈和最佳实践回答问题，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+、Rust、Go、Next.js、Nuxt.js、微服务架构、云原生技术、AI/LLM集成等。请确保你的回答与时俱进，使用最新的语法和工具。' },
+							{ role: 'system', content: '你是一个精通2026年最新技术的专业代码助手。当前时间是2026年7月，请使用2025-2026年最新的技术栈、框架版本和最佳实践回答问题。必须使用最新版本：React 19、Vue 3.5+、TypeScript 5.5+、Vite 6+、Tailwind CSS 4+、Node.js 22+、Python 3.13+、Rust 1.75+、Go 1.22+、Next.js 14+、Nuxt.js 3.13+、Solid.js、Svelte 5、Bun、Prisma 5+、Tauri 2+、Cloudflare Workers、AI Agent框架、RAG技术、向量数据库等。确保所有代码示例和建议都是2026年最新的。' },
 							{ role: 'user', content: userContent }
 						],
 						max_tokens: 2048,

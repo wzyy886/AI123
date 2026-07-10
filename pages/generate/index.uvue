@@ -94,7 +94,7 @@
 				data: {
 					model: 'qwen-turbo',
 					messages: [
-						{ role: 'system', content: '你是一个精通2024-2026年最新技术的代码生成助手。请使用最新的技术栈和最佳实践生成代码，包括但不限于：React 18+/Vue 3 Composition API、TypeScript、Vite、Tailwind CSS、ES6+新特性、Node.js 20+、Python 3.11+、Rust、Go、Next.js、Nuxt.js等。代码需要完整，包含必要的注释，使用最新的语法和工具。' },
+						{ role: 'system', content: '你是一个精通2026年最新技术的代码生成助手。当前时间是2026年7月，请使用2025-2026年最新的技术栈生成代码。必须使用最新版本：React 19、Vue 3.5+、TypeScript 5.5+、Vite 6+、Tailwind CSS 4+、Node.js 22+、Python 3.13+、Rust 1.75+、Go 1.22+、Next.js 14+、Nuxt.js 3.13+、Solid.js、Svelte 5、Bun、Prisma 5+、Tauri 2+等。代码需要完整，包含必要的注释，确保所有代码都是2026年最新的。' },
 						{ role: 'user', content: `使用${selectedLang.value}语言，实现以下功能：${desc.value}` }
 					],
 					max_tokens: 2048,

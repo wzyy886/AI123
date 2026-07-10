@@ -68,6 +68,16 @@
 		})
 	}
 	
+	const saveHistory = (type: string, content: string) => {
+		const history = uni.getStorageSync('chat_history') || []
+		history.push({
+			type: type,
+			content: content,
+			time: new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+		})
+		uni.setStorageSync('chat_history', history)
+	}
+	
 	const explain = async () => {
 		if (!code.value.trim() || loading.value) return
 		loading.value = true
@@ -78,8 +88,10 @@
 				name: 'explain',
 				data: { code: code.value, language: selectedLang.value }
 			})
-			if (res.result?.success) { result.value = res.result.data }
-			else { uni.showToast({ title: '解释失败', icon: 'none' }) }
+			if (res.result?.success) { 
+				result.value = res.result.data 
+				saveHistory('explain', code.value.substring(0, 50) + '...')
+			} else { uni.showToast({ title: '解释失败', icon: 'none' }) }
 		} catch (e) {
 			uni.showToast({ title: '网络错误', icon: 'none' })
 		} finally { loading.value = false }

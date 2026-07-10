@@ -34,6 +34,20 @@
 				"navigationBarTitleText": "我的",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/history/index",
+			"style": {
+				"navigationBarTitleText": "历史记录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/favorites/index",
+			"style": {
+				"navigationBarTitleText": "收藏夹",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

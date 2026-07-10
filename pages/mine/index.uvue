@@ -52,14 +52,18 @@
 	]
 	
 	const menuList = [
-		{ icon: '📜', name: '历史记录', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-		{ icon: '❤️', name: '收藏夹', color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' },
+		{ icon: '📜', name: '历史记录', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', path: '/pages/history/index' },
+		{ icon: '❤️', name: '收藏夹', color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', path: '/pages/favorites/index' },
 		{ icon: '❓', name: '帮助中心', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
 		{ icon: 'ℹ️', name: '关于我们', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }
 	]
 	
 	const tap = (item: any) => {
-		uni.showToast({ title: item.name + '功能开发中', icon: 'none' })
+		if (item.path) {
+			uni.navigateTo({ url: item.path })
+		} else {
+			uni.showToast({ title: item.name + '功能开发中', icon: 'none' })
+		}
 	}
 </script>
 

@@ -76,31 +76,43 @@
 		send()
 	}
 	
-	const send = async () => {
-		if (!question.value.trim() || loading.value) return
-		
-		messages.value.push({ role: 'user', content: question.value, time: formatTime() })
-		question.value = ''
-		loading.value = true
-		
-		try {
-			const res: any = await uniCloud.callFunction({
-				name: 'chat',
-				data: { question: messages.value[messages.value.length - 1].content }
+	const saveHistory = (type: string, content: string) => {
+			const history = uni.getStorageSync('chat_history') || []
+			history.push({
+				type: type,
+				content: content,
+				time: formatTime()
 			})
-			
-			if (res.result?.success) {
-				messages.value.push({ role: 'ai', content: res.result.data, time: formatTime() })
-			} else {
-				messages.value.push({ role: 'ai', content: '抱歉，无法回答，请重试', time: formatTime() })
-			}
-		} catch (e) {
-			messages.value.push({ role: 'ai', content: '网络错误，请检查网络', time: formatTime() })
-		} finally {
-			loading.value = false
-			await nextTick()
+			uni.setStorageSync('chat_history', history)
 		}
-	}
+		
+		const send = async () => {
+			if (!question.value.trim() || loading.value) return
+			
+			const userContent = question.value
+			messages.value.push({ role: 'user', content: userContent, time: formatTime() })
+			question.value = ''
+			loading.value = true
+			
+			try {
+				const res: any = await uniCloud.callFunction({
+					name: 'chat',
+					data: { question: userContent }
+				})
+				
+				if (res.result?.success) {
+					messages.value.push({ role: 'ai', content: res.result.data, time: formatTime() })
+					saveHistory('chat', userContent)
+				} else {
+					messages.value.push({ role: 'ai', content: '抱歉，无法回答，请重试', time: formatTime() })
+				}
+			} catch (e) {
+				messages.value.push({ role: 'ai', content: '网络错误，请检查网络', time: formatTime() })
+			} finally {
+				loading.value = false
+				await nextTick()
+			}
+		}
 </script>
 
 <style lang="scss">

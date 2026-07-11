@@ -8,6 +8,8 @@
 - **后端**: uniCloud 云函数
 - **AI服务**: 阿里云通义千问 (qwen-turbo)、通义万相 (wanxiang-v1)
 - **语音合成**: Web Speech API
+- **测试框架**: Jest
+- **CI/CD**: GitHub Actions
 
 ## 功能特性
 
@@ -69,11 +71,17 @@ ai/
 │       ├── generate/          # 代码生成API
 │       ├── review/            # 代码审查API
 │       ├── explain/           # 代码解释API
-│       └── common/            # 公共配置
+│       └── common/
+│           ├── utils/         # 公共工具模块（含单元测试）
+│           └── uni-config-center/ai-config/  # 配置文件
 ├── utils/                     # 工具函数
 │   └── ai.js                  # AI调用工具
+├── .github/workflows/         # CI/CD配置
+│   └── ci.yml                 # GitHub Actions工作流
 ├── API.md                     # API接口文档
 ├── prompt_log.md              # Prompt日志
+├── code_review.md             # AI代码审查报告
+├── summary.md                 # 个人实训总结报告
 └── pages.json                 # 路由配置
 ```
 
@@ -83,12 +91,14 @@ ai/
 
 - HBuilder X 最新版本
 - Node.js 18+
+- 阿里云 DashScope API Key
 
 ### 开发步骤
 
 1. **克隆项目**
 ```bash
 git clone https://github.com/wzyy886/AI123.git
+cd AI123
 ```
 
 2. **打开项目**
@@ -103,6 +113,18 @@ git clone https://github.com/wzyy886/AI123.git
 5. **运行项目**
 - 在 HBuilder X 中点击"运行"->选择运行方式（浏览器/模拟器/真机）
 
+### 生产部署
+
+1. 将 `utils/ai.js` 中的 `DEVELOPMENT_MODE` 改为 `false`（关闭直接API调用fallback）
+2. 确保所有云函数已部署到 uniCloud
+3. 配置前端网页托管，获取线上访问 URL
+
+### 安全性说明
+
+项目采用双模式设计：
+- **开发模式**（`DEVELOPMENT_MODE = true`）：优先调用云函数，云函数不可用时 fallback 到直接调用阿里云 API，便于本地开发测试
+- **生产模式**（`DEVELOPMENT_MODE = false`）：仅通过云函数调用 AI API，API Key 集中管理在后端配置文件中，前端代码无敏感信息暴露
+
 ## API文档
 
 详见 [API.md](API.md)
@@ -111,24 +133,74 @@ git clone https://github.com/wzyy886/AI123.git
 
 详见 [prompt_log.md](prompt_log.md)
 
-## 考核要求清单
+## 代码审查报告
 
-### 项目功能完整度
-- ✅ 前端至少3个独立路由（实际12个）
-- ✅ 后端至少3个API接口（实际10个）
-- ✅ 提供接口文档
-- ✅ UI/UX体验优化
-- ✅ 健壮性（异常场景覆盖）
+详见 [code_review.md](code_review.md)
 
-### 工程规范与代码质量
-- ✅ Git提交历史（多个不同日期）
-- ✅ 代码目录清晰
-- ✅ AI代码审查
+## CI/CD
 
-### AI工具运用与文档
-- ✅ Prompt日志
-- ✅ 项目文档（README.md）
-- ✅ API文档
+项目使用 GitHub Actions 实现持续集成，配置文件位于 `.github/workflows/ci.yml`。
+
+### CI 流程
+1. 代码检出
+2. Node.js 环境配置（18.x、20.x）
+3. 云函数语法检查
+4. JSON 配置文件验证
+5. 公共工具模块单元测试（Jest + 覆盖率）
+6. 文档完整性检查
+7. GitHub Pages 自动部署
+
+## 单元测试
+
+项目使用 Jest 进行单元测试，测试文件位于 `uniCloud-aliyun/cloudfunctions/common/utils/index.test.js`。
+
+### 运行测试
+```bash
+cd uniCloud-aliyun/cloudfunctions/common/utils
+npm install
+npm test
+npm run test:coverage
+```
+
+### 测试覆盖
+- 密码哈希（hashPassword）
+- Token生成（generateToken）
+- 用户名校验（validateUsername）
+- 密码校验（validatePassword）
+- 邮箱校验（validateEmail）
+- Token校验（validateToken）
+- 输入过滤（sanitizeInput）
+- 响应格式化（formatResponse）
+- 日志系统（createLogger）
+- 错误捕获（captureError）
+- 配置加载（loadConfig）
+- 错误处理器（asyncErrorHandler）
+
+## 工程化
+
+### 环境变量
+项目使用环境变量管理配置，参考 `.env.example` 文件。
+
+```bash
+cp .env.example .env
+# 编辑 .env 填入实际配置
+```
+
+主要环境变量：
+- `DASHSCOPE_API_KEY`: 阿里云 DashScope API Key
+- `NODE_ENV`: 运行环境（development/production）
+- `DEBUG`: 是否开启调试模式
+- `REQUEST_TIMEOUT`: 请求超时时间
+- `ERROR_WEBHOOK_URL`: 错误告警 Webhook 地址
+
+### 日志系统
+使用 `createLogger(moduleName)` 创建结构化日志，支持 info/warn/error/debug 四个级别。
+
+### 错误监控
+- `captureError(error, context)`: 捕获错误并记录上下文
+- `getErrorStats()`: 获取错误统计
+- `sendErrorAlert(errorInfo)`: 发送错误告警到 Webhook
+- `asyncErrorHandler(fn, moduleName)`: 云函数错误处理中间件
 
 ## 异常场景覆盖
 
@@ -141,6 +213,48 @@ git clone https://github.com/wzyy886/AI123.git
 | AI服务错误 | 解析错误信息，明确提示 |
 | 图片生成超时 | 最多轮询90秒，超时提示 |
 | 语音合成失败 | 提示用户使用Chrome浏览器 |
+
+## 考核要求清单
+
+### A. 项目功能完整度 (50%)
+- ✅ 线上可访问（需部署后获取链接）
+- ✅ 前端至少3个独立路由（实际12个）
+- ✅ 后端至少3个API接口（实际9个）
+- ✅ 提供接口文档（API.md）
+- ✅ UI/UX体验优化
+- ✅ 健壮性（异常场景覆盖）
+
+### B. 工程规范与代码质量 (25%)
+- ✅ Git提交历史（多个不同日期，规范的commit message）
+- ✅ 代码目录清晰
+- ✅ AI代码审查（code_review.md）
+
+### C. AI工具运用与文档 (20%)
+- ✅ Prompt日志（prompt_log.md）
+- ✅ 项目文档（README.md）
+- ✅ API文档（API.md）
+
+### D. 个人总结报告 (5%)
+- ✅ 单独提交（summary.md）
+
+### 可选加分项
+- ✅ CI/CD（GitHub Actions 自动测试部署）
+- ✅ 单元测试（Jest，45个测试用例，覆盖率82%+）
+- ✅ 环境变量、日志、错误监控等工程化手段
+
+## 提交物清单
+
+| 提交物 | 状态 | 说明 |
+|--------|------|------|
+| 项目源码 | ✅ | GitHub仓库 |
+| 线上部署访问URL | ⬜ | 需部署后获取 |
+| 数据库、接口、AI Code Review截图包 | ⬜ | 需手动截图 |
+| README.md | ✅ | 项目文档 |
+| prompt_log.md | ✅ | Prompt日志 |
+| API文档 | ✅ | API.md |
+| 项目演示录屏 | ⬜ | 需录制 |
+| 个人实训总结报告 | ✅ | summary.md / 个人实训总结报告.docx |
+| AI代码审查报告 | ✅ | code_review.md / AI代码审查报告.docx |
 
 ## 作者
 

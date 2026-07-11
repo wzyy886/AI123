@@ -82,7 +82,7 @@
   </view>
 </template>
 
-<script setup>
+<script setup lang="uts">
 import { ref } from 'vue'
 
 const imageUrl = ref('')

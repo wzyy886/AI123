@@ -28,6 +28,18 @@
         <text class="local-label">我的画面</text>
       </view>
       
+      <view class="chat-input-area">
+        <input 
+          class="chat-input" 
+          v-model="chatInput" 
+          placeholder="输入问题..." 
+          @confirm="sendChatMessage"
+        />
+        <view class="send-btn" :class="{ disabled: !chatInput.trim() }" @click="sendChatMessage">
+          <text>发送</text>
+        </view>
+      </view>
+      
       <view class="call-controls">
         <view class="control-btn" :class="{ active: !muted }" @click="toggleMute">
           <text class="control-icon">{{ muted ? '🔇' : '🎤' }}</text>
@@ -104,7 +116,7 @@
   </view>
 </template>
 
-<script setup>
+<script setup lang="uts">
 import { ref } from 'vue'
 
 const isCalling = ref(false)
@@ -116,6 +128,7 @@ const previewMuted = ref(false)
 const loading = ref(false)
 const isRecording = ref(false)
 const aiResponse = ref('')
+const chatInput = ref('')
 
 let recognition: any = null
 let isProcessing = false
@@ -185,89 +198,131 @@ async function startCall() {
 }
 
 function initSpeechRecognition() {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  
-  if (SpeechRecognition) {
-    recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = false
-    recognition.lang = 'zh-CN'
+  try {
+    const globalObj: any = globalThis || window || {}
+    const SpeechRecognition = globalObj.SpeechRecognition || globalObj.webkitSpeechRecognition
     
-    recognition.onstart = () => {
-      isRecording.value = true
-    }
-    
-    recognition.onend = () => {
-      isRecording.value = false
-      if (isCalling.value && !muted.value) {
-        setTimeout(() => {
-          try {
-            recognition.start()
-          } catch (e) {
-            console.log('重新启动语音识别失败')
-          }
-        }, 1000)
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = false
+      recognition.lang = 'zh-CN'
+      
+      recognition.onstart = () => {
+        isRecording.value = true
       }
-    }
-    
-    recognition.onresult = async (event: any) => {
-      if (isProcessing || muted.value) return
       
-      const transcript = event.results[event.results.length - 1][0].transcript
-      if (!transcript.trim()) return
-      
-      isProcessing = true
-      aiResponse.value = ''
-      
-      try {
-        const token = uni.getStorageSync('token')
-        const res: any = await uniCloud.callFunction({
-          name: 'chat',
-          data: {
-            message: transcript,
-            token: token
-          }
-        })
-        
-        if (res.result.code === 200) {
-          aiResponse.value = res.result.data.response
-          speak(res.result.data.response)
+      recognition.onend = () => {
+        isRecording.value = false
+        if (isCalling.value && !muted.value) {
+          setTimeout(() => {
+            try {
+              recognition.start()
+            } catch (e) {
+              console.log('重新启动语音识别失败')
+            }
+          }, 1000)
         }
-      } catch (error) {
-        console.error('语音请求失败:', error)
-      } finally {
-        isProcessing = false
       }
+      
+      recognition.onresult = async (event: any) => {
+        if (isProcessing || muted.value) return
+        
+        const transcript = event.results[event.results.length - 1][0].transcript
+        if (!transcript.trim()) return
+        
+        isProcessing = true
+        aiResponse.value = ''
+        
+        try {
+          const token = uni.getStorageSync('token')
+          const res: any = await uniCloud.callFunction({
+            name: 'chat',
+            data: {
+              message: transcript,
+              token: token
+            }
+          })
+          
+          if (res.result.code === 200) {
+            aiResponse.value = res.result.data.response
+            speak(res.result.data.response)
+          }
+        } catch (error) {
+          console.error('语音请求失败:', error)
+        } finally {
+          isProcessing = false
+        }
+      }
+      
+      recognition.onerror = (event: any) => {
+        console.error('语音识别错误:', event.error)
+      }
+      
+      recognition.start()
+    } else {
+      uni.showToast({ title: '当前浏览器不支持语音识别', icon: 'none' })
     }
-    
-    recognition.onerror = (event: any) => {
-      console.error('语音识别错误:', event.error)
-    }
-    
-    recognition.start()
-  } else {
-    uni.showToast({ title: '当前浏览器不支持语音识别', icon: 'none' })
+  } catch (e) {
+    console.log('语音识别初始化失败')
   }
 }
 
 function speak(text: string) {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-    
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 1
-    utterance.pitch = 1
-    
-    utterance.onstart = () => {
-      callStatus.value = 'AI正在说话...'
+  try {
+    const globalObj: any = globalThis || window || {}
+    if (globalObj.speechSynthesis) {
+      globalObj.speechSynthesis.cancel()
+      
+      const utterance = new (globalObj.SpeechSynthesisUtterance || window.SpeechSynthesisUtterance)(text)
+      utterance.lang = 'zh-CN'
+      utterance.rate = 1
+      utterance.pitch = 1
+      
+      utterance.onstart = () => {
+        callStatus.value = 'AI正在说话...'
+      }
+      
+      utterance.onend = () => {
+        callStatus.value = '通话中'
+      }
+      
+      globalObj.speechSynthesis.speak(utterance)
     }
+  } catch (e) {
+    console.log('语音合成失败')
+  }
+}
+
+async function sendChatMessage() {
+  if (!chatInput.value.trim() || isProcessing) return
+  
+  isProcessing = true
+  const message = chatInput.value
+  chatInput.value = ''
+  aiResponse.value = ''
+  
+  try {
+    const token = uni.getStorageSync('token')
+    const res: any = await uniCloud.callFunction({
+      name: 'chat',
+      data: {
+        message: message,
+        token: token
+      }
+    })
     
-    utterance.onend = () => {
-      callStatus.value = '通话中'
+    if (res.result.code === 200) {
+      aiResponse.value = res.result.data.response
+      speak(res.result.data.response)
+    } else {
+      uni.showToast({ title: '发送失败', icon: 'none' })
     }
-    
-    window.speechSynthesis.speak(utterance)
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    uni.showToast({ title: '发送失败', icon: 'none' })
+  } finally {
+    isProcessing = false
   }
 }
 
@@ -304,9 +359,13 @@ async function endCall() {
           recognition = null
         }
         
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel()
-        }
+        try {
+          const globalObj: any = globalThis || window || {}
+          if (globalObj.speechSynthesis) {
+            globalObj.speechSynthesis.cancel()
+          }
+        } catch (e) {}
+        
         
         const token = uni.getStorageSync('token')
         try {
@@ -484,6 +543,33 @@ async function endCall() {
   text-align: center;
   display: block;
   margin-top: 8rpx;
+}
+
+.chat-input-area {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 40rpx;
+  margin: 0 30rpx 20rpx;
+}
+
+.chat-input {
+  flex: 1;
+  font-size: 28rpx;
+  padding: 15rpx 20rpx;
+}
+
+.send-btn {
+  padding: 15rpx 30rpx;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  
+  &.disabled {
+    background: #ccc;
+  }
 }
 
 .call-controls {

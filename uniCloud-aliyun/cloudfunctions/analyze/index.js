@@ -63,7 +63,7 @@ function requestAI(prompt) {
 }
 
 exports.main = async (event, context) => {
-  const { fileName, fileContent, requirement, token } = event;
+  const { fileName, fileContent, fileUrl, requirement, token } = event;
   
   if (!fileName || !requirement || !token) {
     return {
@@ -88,7 +88,38 @@ exports.main = async (event, context) => {
       };
     }
     
-    const prompt = `文件名称：${fileName}\n用户需求：${requirement}\n\n${fileContent ? '文件内容：\n' + fileContent : '请根据文件名和用户需求进行分析。'}`;
+    let prompt = '';
+    if (fileContent) {
+      prompt = `文件名称：${fileName}\n用户需求：${requirement}\n\n文件内容：\n${fileContent}`;
+    } else if (fileUrl) {
+      const ext = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+      const fileTypeMap = {
+        '.pdf': 'PDF文档',
+        '.doc': 'Word文档',
+        '.docx': 'Word文档',
+        '.xls': 'Excel表格',
+        '.xlsx': 'Excel表格',
+        '.ppt': 'PPT演示文稿',
+        '.pptx': 'PPT演示文稿',
+        '.jpg': '图片文件',
+        '.jpeg': '图片文件',
+        '.png': '图片文件',
+        '.gif': 'GIF动图',
+        '.bmp': '图片文件',
+        '.mp4': '视频文件',
+        '.avi': '视频文件',
+        '.mov': '视频文件',
+        '.mp3': '音频文件',
+        '.wav': '音频文件',
+        '.zip': '压缩文件',
+        '.rar': '压缩文件',
+        '.7z': '压缩文件'
+      };
+      const fileType = fileTypeMap[ext] || '其他文件';
+      prompt = `文件名称：${fileName}\n文件类型：${fileType}\n文件大小：未知\n用户需求：${requirement}\n\n这是一个${fileType}文件，请根据文件名和用户需求提供相关分析和建议。`;
+    } else {
+      prompt = `文件名称：${fileName}\n用户需求：${requirement}\n\n请根据文件名和用户需求进行分析。`;
+    }
     
     const response = await requestAI(prompt);
     

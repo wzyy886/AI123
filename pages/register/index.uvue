@@ -76,7 +76,7 @@
   </view>
 </template>
 
-<script setup>
+<script setup lang="uts">
 import { ref, computed } from 'vue'
 
 const username = ref('')

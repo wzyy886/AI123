@@ -66,17 +66,11 @@
 		{ icon: '❤️', name: '收藏夹', color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', path: '/pages/favorites/index' },
 		{ icon: '💻', name: '代码生成', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', path: '/pages/generate/index' },
 		{ icon: '🔍', name: '代码审查', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', path: '/pages/review/index' },
-		{ icon: '📖', name: '代码解释', color: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', path: '/pages/explain/index' },
-		{ icon: '❓', name: '帮助中心', color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' },
-		{ icon: 'ℹ️', name: '关于我们', color: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }
+		{ icon: '📖', name: '代码解释', color: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', path: '/pages/explain/index' }
 	]
 	
 	const tap = (item: any) => {
-		if (item.path) {
-			uni.navigateTo({ url: item.path })
-		} else {
-			uni.showToast({ title: item.name + '功能开发中', icon: 'none' })
-		}
+		uni.navigateTo({ url: item.path })
 	}
 	
 	const handleAvatarClick = () => {

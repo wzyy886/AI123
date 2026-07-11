@@ -47,34 +47,11 @@
           <text class="register-link" @click="goRegister">立即注册</text>
         </view>
       </view>
-      
-      <view class="third-party">
-        <view class="divider">
-          <view class="line"></view>
-          <text class="divider-text">其他登录方式</text>
-          <view class="line"></view>
-        </view>
-        
-        <view class="social-btns">
-          <view class="social-btn" @click="socialLogin('wechat')">
-            <text>💬</text>
-            <text class="social-name">微信</text>
-          </view>
-          <view class="social-btn" @click="socialLogin('qq')">
-            <text>🐧</text>
-            <text class="social-name">QQ</text>
-          </view>
-          <view class="social-btn" @click="socialLogin('phone')">
-            <text>📱</text>
-            <text class="social-name">手机号</text>
-          </view>
-        </view>
-      </view>
     </view>
   </view>
 </template>
 
-<script setup>
+<script setup lang="uts">
 import { ref } from 'vue'
 
 const username = ref('')
@@ -121,10 +98,6 @@ async function login() {
 
 function goRegister() {
   uni.navigateTo({ url: '/pages/register/index' })
-}
-
-function socialLogin(type: string) {
-  uni.showToast({ title: type + '登录开发中', icon: 'none' })
 }
 </script>
 

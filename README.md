@@ -142,10 +142,6 @@ git clone https://github.com/wzyy886/AI123.git
 | 图片生成超时 | 最多轮询90秒，超时提示 |
 | 语音合成失败 | 提示用户使用Chrome浏览器 |
 
-## 许可证
-
-MIT License
-
 ## 作者
 
 wzyy886

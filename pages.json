@@ -1,9 +1,51 @@
 {
 	"pages": [
 		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/register/index",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "代码问答",
+				"navigationBarTitleText": "AI助手",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/upload/index",
+			"style": {
+				"navigationBarTitleText": "文件问答",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/pimage/index",
+			"style": {
+				"navigationBarTitleText": "AI P图",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/video/index",
+			"style": {
+				"navigationBarTitleText": "视频通话",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/mine/index",
+			"style": {
+				"navigationBarTitleText": "我的",
 				"navigationStyle": "custom"
 			}
 		},
@@ -29,13 +71,6 @@
 			}
 		},
 		{
-			"path": "pages/mine/index",
-			"style": {
-				"navigationBarTitleText": "我的",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/history/index",
 			"style": {
 				"navigationBarTitleText": "历史记录",
@@ -52,7 +87,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "AI代码助手",
+		"navigationBarTitleText": "AI助手",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
 	},
@@ -67,16 +102,16 @@
 				"text": "问答"
 			},
 			{
-				"pagePath": "pages/generate/index",
-				"text": "生成"
+				"pagePath": "pages/upload/index",
+				"text": "文件"
 			},
 			{
-				"pagePath": "pages/review/index",
-				"text": "审查"
+				"pagePath": "pages/pimage/index",
+				"text": "P图"
 			},
 			{
-				"pagePath": "pages/explain/index",
-				"text": "解释"
+				"pagePath": "pages/video/index",
+				"text": "视频"
 			},
 			{
 				"pagePath": "pages/mine/index",

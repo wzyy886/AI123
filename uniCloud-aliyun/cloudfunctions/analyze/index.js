@@ -3,9 +3,9 @@
 const axios = require('axios');
 
 exports.main = async (event, context) => {
-  const { message, token } = event;
+  const { fileName, fileContent, requirement, token } = event;
   
-  if (!message || !token) {
+  if (!fileName || !requirement || !token) {
     return {
       code: 400,
       message: '参数不完整',
@@ -35,11 +35,11 @@ exports.main = async (event, context) => {
         messages: [
           {
             role: 'system',
-            content: '你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，包括但不限于：编程代码问题、技术咨询、生活常识、学习辅导、情感交流、创意写作、数据分析、数学计算、英语翻译等。对于编程问题，请使用2025-2026年最新的技术栈：React 19、Vue 3.5+、TypeScript 5.5+、Vite 6+、Tailwind CSS 4+、Node.js 22+、Python 3.13+、Rust 1.75+、Go 1.22+、Next.js 14+、Nuxt.js 3.13+、Solid.js、Svelte 5、Bun、Prisma 5+、Tauri 2+、Cloudflare Workers、AI Agent框架、RAG技术、向量数据库等。请根据用户的问题类型提供最合适、最专业的回答。'
+            content: '你是一个专业的文件分析助手。当前时间是2026年7月。你可以分析各种类型的文件，包括代码文件、文档文件、数据文件等。请根据用户的需求提供详细的分析报告。'
           },
           {
             role: 'user',
-            content: message
+            content: `文件名称：${fileName}\n用户需求：${requirement}\n\n${fileContent ? '文件内容：\n' + fileContent : '请根据文件名和用户需求进行分析。'}`
           }
         ],
         max_tokens: 2048,
@@ -55,10 +55,11 @@ exports.main = async (event, context) => {
     );
     
     if (response.data && response.data.choices && response.data.choices.length > 0) {
-      await db.collection('chat_history').add({
+      await db.collection('file_history').add({
         userId: user.data[0]._id,
-        userMessage: message,
-        aiResponse: response.data.choices[0].message.content,
+        fileName: fileName,
+        requirement: requirement,
+        analysis: response.data.choices[0].message.content,
         createdAt: new Date().getTime()
       });
       
@@ -66,7 +67,7 @@ exports.main = async (event, context) => {
         code: 200,
         message: 'success',
         data: {
-          response: response.data.choices[0].message.content
+          analysis: response.data.choices[0].message.content
         }
       };
     } else {
@@ -77,7 +78,7 @@ exports.main = async (event, context) => {
       };
     }
   } catch (error) {
-    console.error('AI问答失败:', error);
+    console.error('文件分析失败:', error);
     return {
       code: 500,
       message: '网络错误或服务器内部错误',

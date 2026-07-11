@@ -1,0 +1,531 @@
+<template>
+  <view class="video-page">
+    <view class="page-bg"></view>
+    
+    <view class="video-container" v-if="isCalling">
+      <view class="remote-video">
+        <view class="avatar-wrapper">
+          <view class="avatar">🤖</view>
+          <view class="pulse-ring"></view>
+        </view>
+        <text class="caller-name">AI助手</text>
+        <text class="call-status">{{ callStatus }}</text>
+      </view>
+      
+      <view class="local-video">
+        <view class="camera-preview">
+          <view class="camera-icon">📷</view>
+        </view>
+        <text class="local-label">我的画面</text>
+      </view>
+      
+      <view class="call-controls">
+        <view class="control-btn" :class="{ active: !muted }" @click="toggleMute">
+          <text class="control-icon">{{ muted ? '🔇' : '🎤' }}</text>
+          <text class="control-text">{{ muted ? '已静音' : '麦克风' }}</text>
+        </view>
+        <view class="control-btn" :class="{ active: !videoOff }" @click="toggleVideo">
+          <text class="control-icon">{{ videoOff ? '📹' : '📷' }}</text>
+          <text class="control-text">{{ videoOff ? '已关闭' : '摄像头' }}</text>
+        </view>
+        <view class="control-btn end-btn" @click="endCall">
+          <text class="control-icon">📞</text>
+          <text class="control-text">结束通话</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="page-content" v-else>
+      <view class="header">
+        <view class="icon-wrapper">
+          <view class="icon">📹</view>
+        </view>
+        <text class="title">AI视频通话</text>
+        <text class="subtitle">与AI进行实时视频对话</text>
+      </view>
+      
+      <view class="card">
+        <view class="preview-section">
+          <view class="preview-box">
+            <view class="camera-placeholder">
+              <view class="camera-icon">📷</view>
+            </view>
+            <view class="preview-controls">
+              <view class="preview-btn" @click="toggleCamera">
+                <text>{{ cameraFront ? '📹' : '🔄' }}</text>
+              </view>
+              <view class="preview-btn" :class="{ active: !previewMuted }" @click="togglePreviewMute">
+                <text>{{ previewMuted ? '🔇' : '🎤' }}</text>
+              </view>
+            </view>
+          </view>
+          <text class="preview-label">点击下方按钮开始视频通话</text>
+        </view>
+        
+        <view class="start-btn" :class="{ disabled: loading }" @click="startCall">
+          <text class="btn-icon">📞</text>
+          <text class="btn-text">{{ loading ? '正在连接...' : '开始视频通话' }}</text>
+        </view>
+        
+        <view class="features-list">
+          <view class="feature-item">
+            <text class="feature-icon">🎯</text>
+            <text class="feature-text">实时语音对话</text>
+          </view>
+          <view class="feature-item">
+            <text class="feature-icon">👁️</text>
+            <text class="feature-text">视频互动</text>
+          </view>
+          <view class="feature-item">
+            <text class="feature-icon">💬</text>
+            <text class="feature-text">智能问答</text>
+          </view>
+          <view class="feature-item">
+            <text class="feature-icon">🔒</text>
+            <text class="feature-text">隐私保护</text>
+          </view>
+        </view>
+      </view>
+      
+      <view class="tips-card">
+        <text class="tips-title">💡 使用提示</text>
+        <text class="tips-content">点击开始通话后，AI会通过视频方式与你进行互动。你可以询问任何问题，AI会实时回答。</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isCalling = ref(false)
+const callStatus = ref('正在连接...')
+const muted = ref(false)
+const videoOff = ref(false)
+const cameraFront = ref(true)
+const previewMuted = ref(false)
+const loading = ref(false)
+
+function toggleCamera() {
+  cameraFront.value = !cameraFront.value
+}
+
+function togglePreviewMute() {
+  previewMuted.value = !previewMuted.value
+}
+
+async function startCall() {
+  if (loading.value) return
+  
+  const token = uni.getStorageSync('token')
+  if (!token) {
+    uni.showModal({
+      title: '提示',
+      content: '请先登录后再使用视频通话功能',
+      confirmText: '去登录',
+      success: (res) => {
+        if (res.confirm) {
+          uni.navigateTo({ url: '/pages/login/index' })
+        }
+      }
+    })
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const res: any = await uniCloud.callFunction({
+      name: 'video',
+      data: {
+        action: 'start',
+        token: token
+      }
+    })
+    
+    if (res.result.code === 200) {
+      isCalling.value = true
+      callStatus.value = '正在连接...'
+      await delay(2000)
+      callStatus.value = 'AI正在准备...'
+      await delay(2000)
+      callStatus.value = '通话中'
+      
+      uni.showToast({ title: '通话已连接', icon: 'success' })
+    } else if (res.result.code === 401) {
+      uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
+      setTimeout(() => {
+        uni.navigateTo({ url: '/pages/login/index' })
+      }, 1500)
+    } else {
+      uni.showToast({ title: res.result.message || '连接失败', icon: 'none' })
+    }
+  } catch (error) {
+    uni.showToast({ title: '连接失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function toggleMute() {
+  muted.value = !muted.value
+  uni.showToast({ title: muted.value ? '已静音' : '已取消静音', icon: 'none' })
+}
+
+function toggleVideo() {
+  videoOff.value = !videoOff.value
+  uni.showToast({ title: videoOff.value ? '已关闭摄像头' : '已开启摄像头', icon: 'none' })
+}
+
+async function endCall() {
+  uni.showModal({
+    title: '结束通话',
+    content: '确定要结束通话吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        const token = uni.getStorageSync('token')
+        try {
+          await uniCloud.callFunction({
+            name: 'video',
+            data: {
+              action: 'end',
+              token: token
+            }
+          })
+        } catch (error) {
+          console.log('结束通话失败')
+        }
+        
+        isCalling.value = false
+        callStatus.value = '正在连接...'
+        uni.showToast({ title: '通话已结束', icon: 'none' })
+      }
+    }
+  })
+}
+</script>
+
+<style lang="scss">
+.video-page {
+  min-height: 100vh;
+  position: relative;
+}
+
+.page-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  z-index: 0;
+}
+
+.video-container {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.remote-video {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.avatar-wrapper {
+  position: relative;
+  margin-bottom: 30rpx;
+}
+
+.avatar {
+  width: 160rpx;
+  height: 160rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
+}
+
+.pulse-ring {
+  position: absolute;
+  top: -10rpx;
+  left: -10rpx;
+  right: -10rpx;
+  bottom: -10rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.caller-name {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 15rpx;
+}
+
+.call-status {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.local-video {
+  position: absolute;
+  top: 40rpx;
+  right: 30rpx;
+  width: 200rpx;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16rpx;
+  padding: 10rpx;
+}
+
+.camera-preview {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #000;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-icon {
+  font-size: 48rpx;
+}
+
+.local-label {
+  font-size: 20rpx;
+  color: #fff;
+  text-align: center;
+  display: block;
+  margin-top: 8rpx;
+}
+
+.call-controls {
+  padding: 40rpx 60rpx calc(60rpx + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20rpx);
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 40rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+  
+  &.active {
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  &.end-btn {
+    background: #ff6b6b;
+    border-color: #ff6b6b;
+  }
+}
+
+.control-icon {
+  font-size: 48rpx;
+  margin-bottom: 10rpx;
+}
+
+.control-text {
+  font-size: 22rpx;
+  color: #fff;
+}
+
+.page-content {
+  position: relative;
+  z-index: 1;
+  padding: 40rpx 30rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.icon-wrapper {
+  width: 120rpx;
+  height: 120rpx;
+  margin: 0 auto 30rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.icon {
+  font-size: 56rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card {
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.preview-section {
+  margin-bottom: 40rpx;
+}
+
+.preview-box {
+  position: relative;
+  border-radius: 24rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+
+.camera-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-controls {
+  position: absolute;
+  bottom: 20rpx;
+  right: 20rpx;
+  display: flex;
+  gap: 15rpx;
+}
+
+.preview-btn {
+  width: 60rpx;
+  height: 60rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  
+  &.active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.preview-label {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  display: block;
+}
+
+.start-btn {
+  padding: 35rpx;
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  border-radius: 24rpx;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40rpx;
+  
+  &.disabled {
+    opacity: 0.5;
+  }
+  
+  &:active:not(.disabled) {
+    transform: scale(0.98);
+  }
+}
+
+.btn-icon {
+  font-size: 40rpx;
+  margin-right: 15rpx;
+}
+
+.btn-text {
+  font-size: 34rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.features-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  width: 45%;
+}
+
+.feature-icon {
+  font-size: 48rpx;
+  margin-bottom: 15rpx;
+}
+
+.feature-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.tips-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 24rpx;
+  padding: 30rpx;
+}
+
+.tips-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 15rpx;
+}
+
+.tips-content {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+}
+</style>

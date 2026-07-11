@@ -1,0 +1,304 @@
+<template>
+  <view class="register-page">
+    <view class="page-bg"></view>
+    <view class="page-content">
+      <view class="header">
+        <view class="back-btn" @click="goBack">
+          <text>←</text>
+        </view>
+        <text class="title">注册账号</text>
+        <view class="placeholder"></view>
+      </view>
+      
+      <view class="form-card">
+        <view class="input-group">
+          <text class="input-icon">👤</text>
+          <input 
+            class="input-field" 
+            v-model="username" 
+            placeholder="请输入用户名（3-20个字符）"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-icon">✉️</text>
+          <input 
+            class="input-field" 
+            v-model="email" 
+            placeholder="请输入邮箱地址"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-icon">🔒</text>
+          <input 
+            class="input-field" 
+            v-model="password" 
+            placeholder="请输入密码（至少6位）"
+            placeholder-class="input-placeholder"
+            type="password"
+          />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-icon">🔒</text>
+          <input 
+            class="input-field" 
+            v-model="confirmPassword" 
+            placeholder="请再次输入密码"
+            placeholder-class="input-placeholder"
+            type="password"
+          />
+        </view>
+        
+        <view class="agreement-row">
+          <view class="checkbox" :class="{ checked: agreed }" @click="agreed = !agreed">
+            <text v-if="agreed">✓</text>
+          </view>
+          <text class="agreement-text">我已阅读并同意</text>
+          <text class="agreement-link">《用户协议》</text>
+          <text class="agreement-text">和</text>
+          <text class="agreement-link">《隐私政策》</text>
+        </view>
+        
+        <view class="register-btn" :class="{ disabled: !canSubmit || loading }" @click="register">
+          <text class="btn-text">{{ loading ? '注册中...' : '立即注册' }}</text>
+        </view>
+        
+        <view class="login-row">
+          <text class="login-text">已有账号?</text>
+          <text class="login-link" @click="goLogin">去登录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+const username = ref('')
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const agreed = ref(false)
+const loading = ref(false)
+
+const canSubmit = computed(() => {
+  return username.value && email.value && password.value && 
+         confirmPassword.value && password.value === confirmPassword.value && agreed.value
+})
+
+function goBack() {
+  uni.navigateBack()
+}
+
+async function register() {
+  if (!canSubmit.value || loading.value) return
+  
+  loading.value = true
+  
+  try {
+    const res: any = await uniCloud.callFunction({
+      name: 'register',
+      data: {
+        username: username.value,
+        email: email.value,
+        password: password.value
+      }
+    })
+    
+    if (res.result.code === 200) {
+      uni.setStorageSync('token', res.result.data.token)
+      uni.setStorageSync('userInfo', {
+        userId: res.result.data.userId,
+        username: res.result.data.username,
+        email: res.result.data.email
+      })
+      
+      uni.showToast({ title: '注册成功', icon: 'success' })
+      
+      setTimeout(() => {
+        uni.switchTab({ url: '/pages/index/index' })
+      }, 1500)
+    } else {
+      uni.showToast({ title: res.result.message || '注册失败', icon: 'none' })
+    }
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '网络错误', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+function goLogin() {
+  uni.navigateBack()
+}
+</script>
+
+<style lang="scss">
+.register-page {
+  min-height: 100vh;
+  position: relative;
+}
+
+.page-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  z-index: 0;
+}
+
+.page-content {
+  position: relative;
+  z-index: 1;
+  padding: 60rpx 40rpx;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40rpx;
+}
+
+.back-btn {
+  width: 60rpx;
+  height: 60rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #fff;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.placeholder {
+  width: 60rpx;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #f8f8f8;
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid transparent;
+  
+  &:focus-within {
+    border-color: #11998e;
+    background: #fff;
+  }
+}
+
+.input-icon {
+  font-size: 32rpx;
+  margin-right: 20rpx;
+}
+
+.input-field {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.input-placeholder {
+  color: #999;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+  flex-wrap: wrap;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+  
+  &.checked {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    border-color: transparent;
+    color: #fff;
+    font-size: 20rpx;
+  }
+}
+
+.agreement-text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.agreement-link {
+  font-size: 24rpx;
+  color: #11998e;
+}
+
+.register-btn {
+  padding: 32rpx;
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  border-radius: 24rpx;
+  text-align: center;
+  margin-bottom: 32rpx;
+  
+  &.disabled {
+    opacity: 0.5;
+  }
+  
+  &:active:not(.disabled) {
+    transform: scale(0.98);
+  }
+}
+
+.btn-text {
+  font-size: 34rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.login-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.login-link {
+  font-size: 28rpx;
+  color: #11998e;
+  font-weight: 600;
+  margin-left: 10rpx;
+}
+</style>

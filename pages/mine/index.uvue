@@ -3,12 +3,18 @@
 		<view class="header">
 			<view class="header-bg"></view>
 			<view class="header-content">
-				<view class="avatar-wrap">
-					<view class="avatar">👤</view>
+				<view class="avatar-wrap" @click="handleAvatarClick">
+					<view class="avatar">{{ userInfo ? '👤' : '🔒' }}</view>
 					<view class="avatar-glow"></view>
 				</view>
-				<text class="name">AI代码助手用户</text>
-				<text class="id">ID: 888888</text>
+				<text class="name">{{ userInfo ? userInfo.username : '点击登录' }}</text>
+				<text class="id">{{ userInfo ? '邮箱: ' + userInfo.email : '登录后享受完整功能' }}</text>
+				<view class="login-btn" v-if="!userInfo" @click="goLogin">
+					<text>去登录</text>
+				</view>
+				<view class="logout-btn" v-if="userInfo" @click="logout">
+					<text>退出登录</text>
+				</view>
 			</view>
 		</view>
 		
@@ -44,6 +50,10 @@
 </template>
 
 <script setup lang="uts">
+	import { ref } from 'vue'
+	
+	const userInfo = ref<any>(uni.getStorageSync('userInfo'))
+	
 	const stats = [
 		{ value: '0', label: '问答次数' },
 		{ value: '0', label: '生成代码' },
@@ -54,8 +64,11 @@
 	const menuList = [
 		{ icon: '📜', name: '历史记录', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', path: '/pages/history/index' },
 		{ icon: '❤️', name: '收藏夹', color: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', path: '/pages/favorites/index' },
-		{ icon: '❓', name: '帮助中心', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
-		{ icon: 'ℹ️', name: '关于我们', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }
+		{ icon: '💻', name: '代码生成', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', path: '/pages/generate/index' },
+		{ icon: '🔍', name: '代码审查', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', path: '/pages/review/index' },
+		{ icon: '📖', name: '代码解释', color: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', path: '/pages/explain/index' },
+		{ icon: '❓', name: '帮助中心', color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' },
+		{ icon: 'ℹ️', name: '关于我们', color: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }
 	]
 	
 	const tap = (item: any) => {
@@ -64,6 +77,31 @@
 		} else {
 			uni.showToast({ title: item.name + '功能开发中', icon: 'none' })
 		}
+	}
+	
+	const handleAvatarClick = () => {
+		if (!userInfo.value) {
+			goLogin()
+		}
+	}
+	
+	const goLogin = () => {
+		uni.navigateTo({ url: '/pages/login/index' })
+	}
+	
+	const logout = () => {
+		uni.showModal({
+			title: '退出登录',
+			content: '确定要退出登录吗？',
+			success: (res) => {
+				if (res.confirm) {
+					uni.removeStorageSync('token')
+					uni.removeStorageSync('userInfo')
+					userInfo.value = null
+					uni.showToast({ title: '已退出登录', icon: 'none' })
+				}
+			}
+		})
 	}
 </script>
 
@@ -111,7 +149,19 @@
 		margin-bottom: 6px;
 	}
 	
-	.id { display: block; font-size: 13px; color: rgba(255,255,255,0.7); }
+	.id { display: block; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 16px; }
+	
+	.login-btn {
+		display: inline-block; padding: 10px 30px;
+		background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+		border-radius: 20px; font-size: 14px; color: #fff;
+	}
+	
+	.logout-btn {
+		display: inline-block; padding: 10px 30px;
+		background: rgba(239, 68, 68, 0.8); border-radius: 20px;
+		font-size: 14px; color: #fff;
+	}
 	
 	.content {
 		flex: 1; padding: 0 16px; padding-bottom: 30px;
@@ -143,7 +193,7 @@
 	
 	.menu-item {
 		display: flex; flex-direction: column; align-items: center;
-		padding: 12px 0; width: 25%;
+		padding: 16px 0; width: 33.33%;
 	}
 	
 	.menu-icon {

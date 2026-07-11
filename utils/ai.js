@@ -1,248 +1,293 @@
+const MAX_RETRIES = 2
+
+const DEVELOPMENT_MODE = true
+
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
-const CHAT_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const IMAGE_TASK_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis'
-const IMAGE_STATUS_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/tasks/'
-const IMAGE_SYNC_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync'
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
-function generateImageSync(prompt) {
+function callCloudFunction(name, data, retryCount = 0) {
   return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', IMAGE_SYNC_URL, true)
-    xhr.setRequestHeader('Authorization', 'Bearer ' + API_KEY)
-    xhr.setRequestHeader('Content-Type', 'application/json')
-    xhr.timeout = 600000
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText)
-          if (result.output && result.output.results && result.output.results.length > 0) {
-            resolve(result.output.results[0].url)
-          } else {
-            reject(new Error('图片生成失败'))
-          }
-        } catch (e) {
-          reject(new Error('解析响应失败'))
-        }
-      } else {
-        reject(new Error('请求失败，状态码: ' + xhr.status))
-      }
-    }
-
-    xhr.onerror = () => reject(new Error('网络错误'))
-    xhr.ontimeout = () => reject(new Error('请求超时'))
-
-    xhr.send(JSON.stringify({
-      model: 'wanxiang-v1',
-      input: {
-        prompt: prompt
-      },
-      parameters: {
-        size: '1024x1024',
-        n: 1
-      }
-    }))
-  })
-}
-
-function callAI(message, systemPrompt, maxTokens = 8192, retryCount = 0) {
-  const maxRetries = 2
-  return new Promise((resolve, reject) => {
-    if (!message || typeof message !== 'string') {
-      reject(new Error('参数无效'))
+    const token = uni.getStorageSync('token')
+    if (!token) {
+      reject(new Error('请先登录后再使用'))
       return
     }
 
-    if (typeof window !== 'undefined' && navigator.onLine === false) {
-      reject(new Error('网络断开，请检查网络连接'))
-      return
-    }
-
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', CHAT_URL, true)
-    xhr.setRequestHeader('Authorization', 'Bearer ' + API_KEY)
-    xhr.setRequestHeader('Content-Type', 'application/json')
-    xhr.timeout = 600000
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText)
-          if (result.choices && result.choices.length > 0) {
-            resolve(result.choices[0].message.content)
-          } else if (result.error) {
-            reject(new Error('AI服务错误: ' + (result.error.message || '未知错误')))
-          } else {
-            reject(new Error('AI响应格式异常'))
-          }
-        } catch (e) {
-          reject(new Error('解析响应失败'))
+    uniCloud.callFunction({
+      name: name,
+      data: Object.assign({ token: token }, data),
+      success: (res) => {
+        const result = res.result
+        if (result && result.code === 200) {
+          resolve(result.data)
+        } else if (result && result.code === 401) {
+          reject(new Error('登录已过期，请重新登录'))
+        } else if (result && result.code === 400) {
+          reject(new Error(result.message || '请求参数有误'))
+        } else {
+          reject(new Error(result?.message || '服务暂时不可用，请稍后重试'))
         }
-      } else if (xhr.status >= 500 && retryCount < maxRetries) {
-        setTimeout(() => {
-          callAI(message, systemPrompt, maxTokens, retryCount + 1).then(resolve).catch(reject)
-        }, 1000 * Math.pow(2, retryCount))
-      } else {
-        reject(new Error('请求失败，状态码: ' + xhr.status))
-      }
-    }
-
-    xhr.onerror = () => {
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          callAI(message, systemPrompt, maxTokens, retryCount + 1).then(resolve).catch(reject)
-        }, 1000 * Math.pow(2, retryCount))
-      } else {
-        reject(new Error('网络错误，请检查网络连接'))
-      }
-    }
-
-    xhr.ontimeout = () => {
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          callAI(message, systemPrompt, maxTokens, retryCount + 1).then(resolve).catch(reject)
-        }, 2000 * Math.pow(2, retryCount))
-      } else {
-        reject(new Error('请求超时，请稍后重试'))
-      }
-    }
-
-    xhr.send(JSON.stringify({
-      model: 'qwen-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: message
-        }
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7
-    }))
-  })
-}
-
-function requestImageTask(prompt) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', IMAGE_TASK_URL, true)
-    xhr.setRequestHeader('Authorization', 'Bearer ' + API_KEY)
-    xhr.setRequestHeader('Content-Type', 'application/json')
-    xhr.timeout = 600000
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText)
-          if (result.output && result.output.task_id) {
-            resolve(result.output.task_id)
-          } else {
-            reject(new Error('创建图片任务失败'))
-          }
-        } catch (e) {
-          reject(new Error('解析响应失败'))
-        }
-      } else {
-        reject(new Error('请求失败，状态码: ' + xhr.status))
-      }
-    }
-
-    xhr.onerror = () => reject(new Error('网络错误'))
-    xhr.ontimeout = () => reject(new Error('请求超时'))
-
-    xhr.send(JSON.stringify({
-      model: 'wanxiang-v1',
-      input: {
-        prompt: prompt
       },
-      parameters: {
-        size: '1024x1024',
-        n: 1
+      fail: (err) => {
+        if (DEVELOPMENT_MODE) {
+          const apiFallback = getApiFallback(name)
+          if (apiFallback) {
+            apiFallback(data).then(resolve).catch(reject)
+          } else {
+            reject(new Error('服务暂时不可用，请稍后重试'))
+          }
+        } else if (retryCount < MAX_RETRIES) {
+          const delay = 1000 * Math.pow(2, retryCount)
+          setTimeout(() => {
+            callCloudFunction(name, data, retryCount + 1).then(resolve).catch(reject)
+          }, delay)
+        } else {
+          reject(new Error('网络连接失败，请检查网络后重试'))
+        }
       }
-    }))
+    })
   })
 }
 
-function getTaskStatus(taskId) {
+function callAIAPI(message, systemPrompt, maxTokens = 4096) {
   return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('GET', IMAGE_STATUS_URL + taskId, true)
-    xhr.setRequestHeader('Authorization', 'Bearer ' + API_KEY)
-    xhr.timeout = 600000
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText)
-          resolve(result)
-        } catch (e) {
-          reject(new Error('解析响应失败'))
+    uni.request({
+      url: BASE_URL,
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt || '你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，回答要详细、完整、准确。' },
+          { role: 'user', content: message }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7
+      },
+      timeout: 600000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
+          resolve({ response: res.data.choices[0].message.content })
+        } else {
+          reject(new Error('AI服务暂时不可用，请稍后重试'))
         }
-      } else {
-        reject(new Error('请求失败，状态码: ' + xhr.status))
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败，请检查网络后重试'))
       }
-    }
-
-    xhr.onerror = () => reject(new Error('网络错误'))
-    xhr.ontimeout = () => reject(new Error('请求超时'))
-
-    xhr.send()
+    })
   })
+}
+
+function generateCodeAPI(language, description) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: BASE_URL,
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: '你是一个精通2026年最新技术的代码生成助手。当前时间是2026年7月，请使用2025-2026年最新的技术栈生成代码。代码需要完整，包含必要的注释。' },
+          { role: 'user', content: `使用${language || 'JavaScript'}语言，实现以下功能：${description}` }
+        ],
+        max_tokens: 2048,
+        temperature: 0.7
+      },
+      timeout: 600000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
+          resolve({ response: res.data.choices[0].message.content })
+        } else {
+          reject(new Error('AI服务暂时不可用，请稍后重试'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败，请检查网络后重试'))
+      }
+    })
+  })
+}
+
+function reviewCodeAPI(language, code) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: BASE_URL,
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: '你是一个精通2026年最新技术的代码审查助手。请检查代码的正确性、安全性、性能问题和代码风格，并给出改进建议。' },
+          { role: 'user', content: `请审查以下${language || 'JavaScript'}代码：\n\n${code}` }
+        ],
+        max_tokens: 2048,
+        temperature: 0.5
+      },
+      timeout: 600000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
+          resolve({ response: res.data.choices[0].message.content })
+        } else {
+          reject(new Error('AI服务暂时不可用，请稍后重试'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败，请检查网络后重试'))
+      }
+    })
+  })
+}
+
+function explainCodeAPI(language, code) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: BASE_URL,
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: '你是一个精通2026年最新技术的代码解释助手。请详细解释代码的功能、执行流程和关键技术点。' },
+          { role: 'user', content: `请解释以下${language || 'JavaScript'}代码：\n\n${code}` }
+        ],
+        max_tokens: 2048,
+        temperature: 0.5
+      },
+      timeout: 600000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
+          resolve({ response: res.data.choices[0].message.content })
+        } else {
+          reject(new Error('AI服务暂时不可用，请稍后重试'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败，请检查网络后重试'))
+      }
+    })
+  })
+}
+
+function generateImageAPI(prompt) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync',
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'wanxiang-v1',
+        input: { prompt: prompt }
+      },
+      timeout: 600000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data?.output?.url_list && res.data.output.url_list.length > 0) {
+          resolve({ url: res.data.output.url_list[0] })
+        } else {
+          reject(new Error('图片生成失败，请稍后重试'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败，请检查网络后重试'))
+      }
+    })
+  })
+}
+
+function getApiFallback(name) {
+  switch (name) {
+    case 'chat':
+      return (data) => callAIAPI(data.message, data.systemPrompt, data.maxTokens)
+    case 'generate':
+      return (data) => generateCodeAPI(data.language, data.description)
+    case 'review':
+      return (data) => reviewCodeAPI(data.language, data.code)
+    case 'explain':
+      return (data) => explainCodeAPI(data.language, data.code)
+    case 'image':
+      return (data) => generateImageAPI(data.prompt)
+    case 'analyze':
+      return (data) => callAIAPI(data.prompt, '你是一个专业的文件分析助手。请根据用户的需求提供详细的分析报告。')
+    default:
+      return null
+  }
+}
+
+function callAI(message, systemPrompt, maxTokens = 8192) {
+  if (!message || typeof message !== 'string' || message.trim() === '') {
+    return Promise.reject(new Error('请输入有效的问题'))
+  }
+  if (message.length > 5000) {
+    return Promise.reject(new Error('输入内容过长，请精简后重试'))
+  }
+  return callCloudFunction('chat', {
+    message: message,
+    systemPrompt: systemPrompt,
+    maxTokens: maxTokens
+  }).then(data => data.response)
+}
+
+function generateCode(language, description) {
+  if (!description || typeof description !== 'string' || description.trim() === '') {
+    return Promise.reject(new Error('请输入功能描述'))
+  }
+  if (description.length > 2000) {
+    return Promise.reject(new Error('描述内容过长，请精简后重试'))
+  }
+  return callCloudFunction('generate', {
+    language: language,
+    description: description
+  }).then(data => data.response)
+}
+
+function reviewCode(language, code) {
+  if (!code || typeof code !== 'string' || code.trim() === '') {
+    return Promise.reject(new Error('请输入待审查的代码'))
+  }
+  if (code.length > 10000) {
+    return Promise.reject(new Error('代码内容过长，请精简后重试'))
+  }
+  return callCloudFunction('review', {
+    language: language,
+    code: code
+  }).then(data => data.response)
+}
+
+function explainCode(language, code) {
+  if (!code || typeof code !== 'string' || code.trim() === '') {
+    return Promise.reject(new Error('请输入待解释的代码'))
+  }
+  if (code.length > 10000) {
+    return Promise.reject(new Error('代码内容过长，请精简后重试'))
+  }
+  return callCloudFunction('explain', {
+    language: language,
+    code: code
+  }).then(data => data.response)
 }
 
 function generateImage(prompt) {
-  return new Promise((resolve, reject) => {
-    if (!prompt || typeof prompt !== 'string') {
-      reject(new Error('参数无效'))
-      return
-    }
-
-    if (typeof window !== 'undefined' && navigator.onLine === false) {
-      reject(new Error('网络断开，请检查网络连接'))
-      return
-    }
-
-    generateImageSync(prompt).then(resolve).catch(err => {
-      let pollCount = 0
-      const maxPolls = 30
-
-      requestImageTask(prompt).then(taskId => {
-        const poll = () => {
-          if (pollCount >= maxPolls) {
-            reject(new Error('图片生成超时'))
-            return
-          }
-
-          pollCount++
-
-          getTaskStatus(taskId).then(result => {
-            if (result.output && result.output.status === 'SUCCEEDED') {
-              if (result.output.results && result.output.results.length > 0) {
-                resolve(result.output.results[0].url)
-              } else {
-                reject(new Error('图片生成失败'))
-              }
-            } else if (result.output && result.output.status === 'FAILED') {
-              reject(new Error('图片生成失败: ' + (result.output.message || '未知错误')))
-            } else {
-              setTimeout(poll, 3000)
-            }
-          }).catch(err => {
-            if (pollCount < maxPolls) {
-              setTimeout(poll, 3000)
-            } else {
-              reject(err)
-            }
-          })
-        }
-
-        setTimeout(poll, 2000)
-      }).catch(reject)
-    })
-  })
+  if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+    return Promise.reject(new Error('请输入图片描述'))
+  }
+  return callCloudFunction('image', {
+    prompt: prompt
+  }).then(data => data.url)
 }
 
 function formatTime() {
@@ -256,9 +301,27 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
+function getUserFriendlyError(error) {
+  const message = error?.message || String(error)
+  if (message.includes('network') || message.includes('网络') || message.includes('timeout') || message.includes('超时')) {
+    return '网络连接异常，请检查网络后重试'
+  }
+  if (message.includes('401') || message.includes('登录') || message.includes('token')) {
+    return '登录已过期，请重新登录'
+  }
+  if (message.includes('500') || message.includes('服务器')) {
+    return '服务器繁忙，请稍后重试'
+  }
+  return message
+}
+
 export {
   callAI,
+  generateCode,
+  reviewCode,
+  explainCode,
   generateImage,
   formatTime,
-  formatSize
+  formatSize,
+  getUserFriendlyError
 }

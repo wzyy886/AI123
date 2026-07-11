@@ -3,3 +3,6 @@ unpackage/
 .hbuilderx/
 " " 
 node_modules
+.env
+coverage/
+*.log

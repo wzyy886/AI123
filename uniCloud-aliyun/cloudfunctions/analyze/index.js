@@ -1,6 +1,66 @@
 'use strict';
 
-const axios = require('axios');
+const https = require('https');
+const querystring = require('querystring');
+
+function requestAI(prompt) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      model: 'qwen-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的文件分析助手。当前时间是2026年7月。你可以分析各种类型的文件，包括代码文件、文档文件、数据文件等。请根据用户的需求提供详细的分析报告。'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 2048,
+      temperature: 0.7
+    });
+    
+    const options = {
+      hostname: 'dashscope.aliyuncs.com',
+      path: '/compatible-mode/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      },
+      timeout: 60000
+    };
+    
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(body);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    
+    req.on('error', (error) => {
+      reject(error);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('请求超时'));
+    });
+    
+    req.write(data);
+    req.end();
+  });
+}
 
 exports.main = async (event, context) => {
   const { fileName, fileContent, requirement, token } = event;
@@ -28,38 +88,16 @@ exports.main = async (event, context) => {
       };
     }
     
-    const response = await axios.post(
-      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-      {
-        model: 'qwen-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的文件分析助手。当前时间是2026年7月。你可以分析各种类型的文件，包括代码文件、文档文件、数据文件等。请根据用户的需求提供详细的分析报告。'
-          },
-          {
-            role: 'user',
-            content: `文件名称：${fileName}\n用户需求：${requirement}\n\n${fileContent ? '文件内容：\n' + fileContent : '请根据文件名和用户需求进行分析。'}`
-          }
-        ],
-        max_tokens: 2048,
-        temperature: 0.7
-      },
-      {
-        headers: {
-          'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
-      }
-    );
+    const prompt = `文件名称：${fileName}\n用户需求：${requirement}\n\n${fileContent ? '文件内容：\n' + fileContent : '请根据文件名和用户需求进行分析。'}`;
     
-    if (response.data && response.data.choices && response.data.choices.length > 0) {
+    const response = await requestAI(prompt);
+    
+    if (response && response.choices && response.choices.length > 0) {
       await db.collection('file_history').add({
         userId: user.data[0]._id,
         fileName: fileName,
         requirement: requirement,
-        analysis: response.data.choices[0].message.content,
+        analysis: response.choices[0].message.content,
         createdAt: new Date().getTime()
       });
       
@@ -67,7 +105,7 @@ exports.main = async (event, context) => {
         code: 200,
         message: 'success',
         data: {
-          analysis: response.data.choices[0].message.content
+          analysis: response.choices[0].message.content
         }
       };
     } else {

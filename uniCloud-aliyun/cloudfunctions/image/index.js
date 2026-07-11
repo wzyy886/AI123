@@ -1,11 +1,70 @@
 'use strict';
 
-const axios = require('axios');
+const https = require('https');
+
+function requestAI(prompt) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      model: 'qwen-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的AI图像编辑助手。当前时间是2026年7月。你可以帮助用户进行图片处理、修图、设计等工作。请根据用户的图片描述和需求，提供详细的图片编辑方案和建议。'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 2048,
+      temperature: 0.7
+    });
+    
+    const options = {
+      hostname: 'dashscope.aliyuncs.com',
+      path: '/compatible-mode/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      },
+      timeout: 60000
+    };
+    
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(body);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    
+    req.on('error', (error) => {
+      reject(error);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('请求超时'));
+    });
+    
+    req.write(data);
+    req.end();
+  });
+}
 
 exports.main = async (event, context) => {
-  const { imageUrl, requirement, style, token } = event;
+  const { imageUrl, imageContent, requirement, token } = event;
   
-  if (!imageUrl || !requirement || !token) {
+  if (!requirement || !token) {
     return {
       code: 400,
       message: '参数不完整',
@@ -28,39 +87,16 @@ exports.main = async (event, context) => {
       };
     }
     
-    const response = await axios.post(
-      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-      {
-        model: 'qwen-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的AI图像编辑助手。当前时间是2026年7月。你可以根据用户的需求提供专业的修图建议和指导，包括但不限于：去除背景、添加滤镜、美颜美化、更换背景、调整亮度对比度、添加特效等。请提供详细的修图步骤和建议。'
-          },
-          {
-            role: 'user',
-            content: `图片已上传，请根据以下需求进行修图：\n需求：${requirement}\n风格：${style || '原图'}\n\n请提供详细的修图步骤和建议。`
-          }
-        ],
-        max_tokens: 1024,
-        temperature: 0.7
-      },
-      {
-        headers: {
-          'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
-      }
-    );
+    const prompt = `图片信息：${imageUrl || '已上传图片'}\n图片描述：${imageContent || '暂无描述'}\n用户需求：${requirement}\n\n请提供详细的图片编辑方案和建议。`;
     
-    if (response.data && response.data.choices && response.data.choices.length > 0) {
+    const response = await requestAI(prompt);
+    
+    if (response && response.choices && response.choices.length > 0) {
       await db.collection('image_history').add({
         userId: user.data[0]._id,
-        imageUrl: imageUrl,
+        imageUrl: imageUrl || '',
         requirement: requirement,
-        style: style,
-        suggestion: response.data.choices[0].message.content,
+        suggestion: response.choices[0].message.content,
         createdAt: new Date().getTime()
       });
       
@@ -68,7 +104,7 @@ exports.main = async (event, context) => {
         code: 200,
         message: 'success',
         data: {
-          suggestion: response.data.choices[0].message.content
+          suggestion: response.choices[0].message.content
         }
       };
     } else {

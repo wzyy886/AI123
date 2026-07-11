@@ -1,7 +1,5 @@
 'use strict';
 
-const axios = require('axios');
-
 exports.main = async (event, context) => {
   const { action, token } = event;
   
@@ -31,22 +29,23 @@ exports.main = async (event, context) => {
     if (action === 'start') {
       await db.collection('video_calls').add({
         userId: user.data[0]._id,
-        status: 'connected',
+        status: 'calling',
         startedAt: new Date().getTime()
       });
       
       return {
         code: 200,
-        message: '通话已连接',
+        message: 'success',
         data: {
+          status: 'calling',
           callId: Date.now().toString(),
-          status: 'connected'
+          message: '正在连接AI助手，请稍候...'
         }
       };
     } else if (action === 'end') {
       await db.collection('video_calls').where({
         userId: user.data[0]._id,
-        status: 'connected'
+        status: 'calling'
       }).update({
         status: 'ended',
         endedAt: new Date().getTime()
@@ -54,9 +53,10 @@ exports.main = async (event, context) => {
       
       return {
         code: 200,
-        message: '通话已结束',
+        message: 'success',
         data: {
-          status: 'ended'
+          status: 'ended',
+          message: '通话已结束'
         }
       };
     } else {

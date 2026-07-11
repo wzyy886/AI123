@@ -1,0 +1,6 @@
+{
+  "name": "image",
+  "version": "1.0.0",
+  "description": "图片处理云函数",
+  "main": "index.js"
+}

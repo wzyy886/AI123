@@ -1,0 +1,6 @@
+{
+  "name": "analyze",
+  "version": "1.0.0",
+  "description": "文件分析云函数",
+  "main": "index.js"
+}

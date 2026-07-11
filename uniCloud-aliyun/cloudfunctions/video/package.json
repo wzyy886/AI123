@@ -1,0 +1,6 @@
+{
+  "name": "video",
+  "version": "1.0.0",
+  "description": "视频通话云函数",
+  "main": "index.js"
+}

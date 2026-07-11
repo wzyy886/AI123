@@ -5,7 +5,7 @@
     <view class="video-container" v-if="isCalling">
       <view class="remote-video">
         <view class="avatar-wrapper">
-          <view class="avatar">🤖</view>
+          <view class="avatar">👧</view>
           <view class="pulse-ring"></view>
         </view>
         <text class="caller-name">AI助手</text>

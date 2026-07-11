@@ -30,7 +30,7 @@ function requestAI(prompt) {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(data)
       },
-      timeout: 90000
+      timeout: 180000
     };
     
     const req = https.request(options, (res) => {

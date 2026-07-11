@@ -102,13 +102,14 @@ async function register() {
   
   try {
     const res: any = await uniCloud.callFunction({
-      name: 'register',
-      data: {
-        username: username.value,
-        email: email.value,
-        password: password.value
-      }
-    })
+    name: 'register',
+    data: {
+      username: username.value,
+      email: email.value,
+      password: password.value
+    },
+    timeout: 300000
+  })
     
     if (res.result.code === 200) {
       uni.setStorageSync('token', res.result.data.token)

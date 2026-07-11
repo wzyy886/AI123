@@ -116,7 +116,7 @@
 						message: userContent,
 						token: token
 					},
-					timeout: 120000
+					timeout: 300000
 				})
 				
 				if (res.result.code === 200) {

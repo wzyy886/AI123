@@ -167,7 +167,8 @@ async function startCall() {
       data: {
         action: 'start',
         token: token
-      }
+      },
+      timeout: 300000
     })
     
     if (res.result.code === 200) {
@@ -241,7 +242,8 @@ function initSpeechRecognition() {
             data: {
               message: transcript,
               token: token
-            }
+            },
+            timeout: 300000
           })
           
           if (res.result.code === 200) {
@@ -758,26 +760,38 @@ async function endCall() {
 }
 
 .features-list {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-wrap: nowrap;
   flex-wrap: nowrap;
-  justify-content: space-around;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-align-items: center;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .feature-item {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-align-items: center;
   align-items: center;
-  padding: 20rpx 10rpx;
+  padding: 20rpx 5rpx;
+  -webkit-flex: 1;
   flex: 1;
 }
 
 .feature-icon {
-  font-size: 40rpx;
-  margin-bottom: 10rpx;
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
 }
 
 .feature-text {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #666;
 }
 

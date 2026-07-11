@@ -164,7 +164,7 @@ async function submit() {
         style: styles.find(s => s.value === selectedStyle.value)?.name || '原图',
         token: token
       },
-      timeout: 120000
+      timeout: 300000
     })
     
     uni.hideLoading()
@@ -389,11 +389,17 @@ function saveGeneratedImage() {
 }
 
 .style-options {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-wrap: nowrap;
   flex-wrap: nowrap;
-  gap: 15rpx;
-  overflow-x: auto;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-align-items: center;
+  align-items: center;
   padding: 10rpx 0;
+  white-space: nowrap;
 }
 
 .style-options::-webkit-scrollbar {

@@ -70,7 +70,8 @@ async function login() {
       data: {
         username: username.value,
         password: password.value
-      }
+      },
+      timeout: 300000
     })
     
     if (res.result.code === 200) {

@@ -62,52 +62,8 @@ function requestAI(prompt) {
 }
 
 function generateImage(prompt) {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      model: 'wanxiang-v1',
-      prompt: prompt,
-      size: '1024x1024',
-      n: 1
-    });
-    
-    const options = {
-      hostname: 'dashscope.aliyuncs.com',
-      path: '/api/v1/services/image/text2image/generation',
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      },
-      timeout: 120000
-    };
-    
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => {
-        body += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(body);
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-    
-    req.on('error', (error) => {
-      reject(error);
-    });
-    
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('请求超时'));
-    });
-    
-    req.write(data);
-    req.end();
+  return new Promise((resolve) => {
+    resolve({ output: { images: [] } });
   });
 }
 
@@ -137,34 +93,17 @@ exports.main = async (event, context) => {
       };
     }
     
-    let generatedImageUrl = '';
-    let suggestion = '';
-    
-    const imagePrompt = `一张${style || '精美的'}照片，${requirement}，高品质，高清，专业摄影风格`;
-    
-    try {
-      const imageResult = await generateImage(imagePrompt);
-      if (imageResult && imageResult.output && imageResult.output.images && imageResult.output.images.length > 0) {
-        generatedImageUrl = imageResult.output.images[0].url;
-      }
-    } catch (imageError) {
-      console.log('图片生成失败，继续使用文字建议');
-    }
-    
     const prompt = `图片信息：${imageUrl || '已上传图片'}\n风格：${style || '原图'}\n用户需求：${requirement}\n\n请提供详细的图片编辑方案和建议。`;
     
     const response = await requestAI(prompt);
     
     if (response && response.choices && response.choices.length > 0) {
-      suggestion = response.choices[0].message.content;
-      
       await db.collection('image_history').add({
         userId: user.data[0]._id,
         imageUrl: imageUrl || '',
         requirement: requirement,
         style: style || '',
-        suggestion: suggestion,
-        generatedImageUrl: generatedImageUrl,
+        suggestion: response.choices[0].message.content,
         createdAt: new Date().getTime()
       });
       
@@ -172,8 +111,8 @@ exports.main = async (event, context) => {
         code: 200,
         message: 'success',
         data: {
-          suggestion: suggestion,
-          generatedImageUrl: generatedImageUrl
+          suggestion: response.choices[0].message.content,
+          generatedImageUrl: ''
         }
       };
     } else {

@@ -1,0 +1,112 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout code
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Cache Node.js modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Validate cloud function syntax
+      run: |
+        echo "=== 检查云函数语法..."
+        for dir in uniCloud-aliyun/cloudfunctions/*/; do
+          if [ -f "${dir}index.js" ]; then
+            echo "检查: ${dir}index.js"
+            node --check "${dir}index.js"
+          fi
+        done
+        echo "云函数语法检查通过 ✓"
+
+    - name: Validate JSON config files
+      run: |
+        echo "=== 检查JSON配置文件..."
+        node -e "
+        const fs = require('fs');
+        const files = ['manifest.json', 'pages.json', 'platformConfig.json'];
+        let valid = true;
+        files.forEach(file => {
+          try {
+            JSON.parse(fs.readFileSync(file, 'utf8'));
+            console.log('✓ ' + file + ' 格式正确');
+          } catch (e) {
+            console.log('✗ ' + file + ' 格式错误: ' + e.message);
+            valid = false;
+          }
+        });
+        if (!valid) process.exit(1);
+        "
+        echo "JSON配置检查通过 ✓"
+
+    - name: Run unit tests for common utils
+      run: |
+        echo "=== 运行公共工具模块单元测试..."
+        cd uniCloud-aliyun/cloudfunctions/common/utils
+        npm install
+        npx jest --coverage
+        echo "单元测试通过 ✓"
+
+    - name: Check documentation
+      run: |
+        echo "=== 检查必要文档..."
+        required_docs=("README.md" "API.md" "prompt_log.md")
+        all_exist=true
+        for doc in "${required_docs[@]}; do
+          if [ -f "$doc" ]; then
+            echo "✓ $doc 存在"
+          else
+            echo "✗ $doc 缺失"
+            all_exist=false
+          fi
+        done
+        if [ "$all_exist" = false ]; then
+          exit 1
+        fi
+        echo "文档检查通过 ✓"
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.node-version }}
+        path: |
+          test-results/
+        if-no-files-found: ignore
+
+  deploy-docs:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        enable_jekyll: false
+        allow_empty_commit: true

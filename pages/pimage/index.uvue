@@ -59,11 +59,19 @@
       
       <view class="result-card" v-if="suggestion">
         <view class="result-header">
-          <text class="result-title">修图建议</text>
+          <text class="result-title">修图结果</text>
           <view class="copy-btn" @click="copySuggestion">
-            <text>复制</text>
+            <text>复制建议</text>
           </view>
         </view>
+        
+        <view class="generated-image-container" v-if="generatedImageUrl">
+          <image class="generated-image" :src="generatedImageUrl" mode="widthFix" @click="previewImage" />
+          <view class="save-btn" @click="saveGeneratedImage">
+            <text>保存图片</text>
+          </view>
+        </view>
+        
         <scroll-view class="result-content" scroll-y>
           <text class="result-text">{{ suggestion }}</text>
         </scroll-view>
@@ -89,6 +97,7 @@ const imageUrl = ref('')
 const cloudImageUrl = ref('')
 const requirement = ref('')
 const suggestion = ref('')
+const generatedImageUrl = ref('')
 const loading = ref(false)
 const selectedStyle = ref('original')
 
@@ -109,6 +118,7 @@ function chooseImage() {
     success: (res) => {
       imageUrl.value = res.tempFilePaths[0]
       suggestion.value = ''
+      generatedImageUrl.value = ''
       cloudImageUrl.value = ''
     },
     fail: () => {
@@ -161,6 +171,7 @@ async function submit() {
     
     if (res.result.code === 200) {
       suggestion.value = res.result.data.suggestion
+      generatedImageUrl.value = res.result.data.generatedImageUrl || ''
     } else if (res.result.code === 401) {
       uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
       setTimeout(() => {
@@ -202,6 +213,35 @@ function copySuggestion() {
     data: suggestion.value,
     success: () => {
       uni.showToast({ title: '复制成功', icon: 'success' })
+    }
+  })
+}
+
+function previewImage() {
+  uni.previewImage({
+    urls: [generatedImageUrl.value],
+    current: generatedImageUrl.value
+  })
+}
+
+function saveGeneratedImage() {
+  uni.downloadFile({
+    url: generatedImageUrl.value,
+    success: (res) => {
+      if (res.statusCode === 200) {
+        uni.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: () => {
+            uni.showToast({ title: '保存成功', icon: 'success' })
+          },
+          fail: () => {
+            uni.showToast({ title: '保存失败', icon: 'none' })
+          }
+        })
+      }
+    },
+    fail: () => {
+      uni.showToast({ title: '下载失败', icon: 'none' })
     }
   })
 }
@@ -464,6 +504,26 @@ function copySuggestion() {
   color: #fff;
   border-radius: 12rpx;
   font-size: 24rpx;
+}
+
+.generated-image-container {
+  margin-bottom: 30rpx;
+}
+
+.generated-image {
+  width: 100%;
+  border-radius: 16rpx;
+}
+
+.save-btn {
+  display: flex;
+  justify-content: center;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: #fff;
+  border-radius: 12rpx;
+  font-size: 28rpx;
 }
 
 .result-content {

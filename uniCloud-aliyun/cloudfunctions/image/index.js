@@ -61,8 +61,58 @@ function requestAI(prompt) {
   });
 }
 
+function generateImage(prompt) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      model: 'wanxiang-v1',
+      prompt: prompt,
+      size: '1024x1024',
+      n: 1
+    });
+    
+    const options = {
+      hostname: 'dashscope.aliyuncs.com',
+      path: '/api/v1/services/image/text2image/generation',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      },
+      timeout: 120000
+    };
+    
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(body);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    
+    req.on('error', (error) => {
+      reject(error);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('请求超时'));
+    });
+    
+    req.write(data);
+    req.end();
+  });
+}
+
 exports.main = async (event, context) => {
-  const { imageUrl, imageContent, requirement, token } = event;
+  const { imageUrl, imageContent, requirement, style, token } = event;
   
   if (!requirement || !token) {
     return {
@@ -87,16 +137,34 @@ exports.main = async (event, context) => {
       };
     }
     
-    const prompt = `图片信息：${imageUrl || '已上传图片'}\n图片描述：${imageContent || '暂无描述'}\n用户需求：${requirement}\n\n请提供详细的图片编辑方案和建议。`;
+    let generatedImageUrl = '';
+    let suggestion = '';
+    
+    const imagePrompt = `一张${style || '精美的'}照片，${requirement}，高品质，高清，专业摄影风格`;
+    
+    try {
+      const imageResult = await generateImage(imagePrompt);
+      if (imageResult && imageResult.output && imageResult.output.images && imageResult.output.images.length > 0) {
+        generatedImageUrl = imageResult.output.images[0].url;
+      }
+    } catch (imageError) {
+      console.log('图片生成失败，继续使用文字建议');
+    }
+    
+    const prompt = `图片信息：${imageUrl || '已上传图片'}\n风格：${style || '原图'}\n用户需求：${requirement}\n\n请提供详细的图片编辑方案和建议。`;
     
     const response = await requestAI(prompt);
     
     if (response && response.choices && response.choices.length > 0) {
+      suggestion = response.choices[0].message.content;
+      
       await db.collection('image_history').add({
         userId: user.data[0]._id,
         imageUrl: imageUrl || '',
         requirement: requirement,
-        suggestion: response.choices[0].message.content,
+        style: style || '',
+        suggestion: suggestion,
+        generatedImageUrl: generatedImageUrl,
         createdAt: new Date().getTime()
       });
       
@@ -104,7 +172,8 @@ exports.main = async (event, context) => {
         code: 200,
         message: 'success',
         data: {
-          suggestion: response.choices[0].message.content
+          suggestion: suggestion,
+          generatedImageUrl: generatedImageUrl
         }
       };
     } else {

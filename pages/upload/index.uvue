@@ -74,7 +74,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
-import { callAI, formatSize } from '@/utils/ai.js'
+import { callAI, formatSize, getUserFriendlyError } from '@/utils/ai.js'
 
 const uploadedFileName = ref('')
 const uploadedFilePath = ref('')
@@ -162,8 +162,8 @@ async function submit() {
     const systemPrompt = '你是一个专业的文件分析助手。当前时间是2026年7月。请对文件进行详细、完整的分析，包括文件结构、功能特点、代码逻辑、潜在问题和优化建议等，回答要全面细致，不要简略。'
     const analysis = await callAI(prompt, systemPrompt)
     result.value = analysis
-  } catch (error: any) {
-    uni.showToast({ title: error.message || '网络错误', icon: 'none' })
+  } catch (error) {
+    uni.showToast({ title: getUserFriendlyError(error), icon: 'none' })
   } finally {
     loading.value = false
   }

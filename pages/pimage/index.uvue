@@ -92,7 +92,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
-import { callAI, generateImage } from '@/utils/ai.js'
+import { callAI, generateImage, getUserFriendlyError } from '@/utils/ai.js'
 
 const imageUrl = ref('')
 const cloudImageUrl = ref('')
@@ -173,11 +173,11 @@ async function submit() {
     uni.hideLoading()
     
     generatedImageUrl.value = resultImageUrl
-  } catch (error: any) {
+  } catch (error) {
     uni.hideLoading()
     uni.showModal({
       title: '提示',
-      content: error.message || '网络错误，请稍后重试',
+      content: getUserFriendlyError(error),
       showCancel: false
     })
   } finally {

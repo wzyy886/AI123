@@ -303,24 +303,43 @@ async function sendChatMessage() {
   aiResponse.value = ''
   
   try {
+    uni.showLoading({ title: 'AI思考中...', mask: true })
+    
     const token = uni.getStorageSync('token')
     const res: any = await uniCloud.callFunction({
       name: 'chat',
       data: {
         message: message,
         token: token
-      }
+      },
+      timeout: 120000
     })
+    
+    uni.hideLoading()
     
     if (res.result.code === 200) {
       aiResponse.value = res.result.data.response
       speak(res.result.data.response)
+    } else if (res.result.code === 401) {
+      uni.showToast({ title: '登录已过期', icon: 'none' })
+      setTimeout(() => {
+        uni.navigateTo({ url: '/pages/login/index' })
+      }, 1500)
     } else {
-      uni.showToast({ title: '发送失败', icon: 'none' })
+      uni.showModal({
+        title: '发送失败',
+        content: res.result.message || '请求失败',
+        showCancel: false
+      })
     }
-  } catch (error) {
+  } catch (error: any) {
+    uni.hideLoading()
     console.error('发送消息失败:', error)
-    uni.showToast({ title: '发送失败', icon: 'none' })
+    uni.showModal({
+      title: '发送失败',
+      content: error.message || '网络超时，请检查云函数是否已部署',
+      showCancel: false
+    })
   } finally {
     isProcessing = false
   }

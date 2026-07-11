@@ -1,5 +1,7 @@
 'use strict';
 
+const aiConfig = require('../common/uni-config-center/ai-config/index.js');
+const API_KEY = aiConfig.dashscope.apiKey;
 const https = require('https');
 
 function requestAI(prompt) {
@@ -19,17 +21,17 @@ function requestAI(prompt) {
       max_tokens: 4096,
       temperature: 0.7
     });
-    
+
     const options = {
       hostname: 'dashscope.aliyuncs.com',
       path: '/compatible-mode/v1/chat/completions',
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ',
+        'Authorization': 'Bearer ' + API_KEY,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(data)
       },
-      timeout: 90000
+      timeout: 180000
     };
     
     const req = https.request(options, (res) => {

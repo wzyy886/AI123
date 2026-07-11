@@ -138,8 +138,13 @@ async function submit() {
   loading.value = true
   
   try {
+    uni.showLoading({ title: '上传图片中...', mask: true })
+    
     const uploadRes = await uploadImageToCloud(imageUrl.value)
     cloudImageUrl.value = uploadRes
+    
+    uni.hideLoading()
+    uni.showLoading({ title: 'AI分析中...', mask: true })
     
     const res: any = await uniCloud.callFunction({
       name: 'image',
@@ -148,8 +153,11 @@ async function submit() {
         requirement: requirement.value,
         style: styles.find(s => s.value === selectedStyle.value)?.name || '原图',
         token: token
-      }
+      },
+      timeout: 120000
     })
+    
+    uni.hideLoading()
     
     if (res.result.code === 200) {
       suggestion.value = res.result.data.suggestion
@@ -162,7 +170,12 @@ async function submit() {
       throw new Error(res.result.message || '修图失败')
     }
   } catch (error: any) {
-    uni.showToast({ title: error.message || '网络错误', icon: 'none' })
+    uni.hideLoading()
+    uni.showModal({
+      title: '提示',
+      content: error.message || '网络错误，请稍后重试',
+      showCancel: false
+    })
   } finally {
     loading.value = false
   }
@@ -339,13 +352,16 @@ function copySuggestion() {
   display: flex;
   flex-wrap: wrap;
   gap: 20rpx;
+  justify-content: center;
 }
 
 .style-option {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20rpx 30rpx;
+  justify-content: center;
+  width: calc(33.33% - 15rpx);
+  padding: 30rpx 20rpx;
   background: #f8f8f8;
   border-radius: 16rpx;
   border: 2rpx solid transparent;
@@ -358,13 +374,14 @@ function copySuggestion() {
 }
 
 .style-icon {
-  font-size: 40rpx;
-  margin-bottom: 10rpx;
+  font-size: 44rpx;
+  margin-bottom: 12rpx;
 }
 
 .style-name {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #333;
+  text-align: center;
 }
 
 .submit-btn {

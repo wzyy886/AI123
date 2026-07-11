@@ -53,6 +53,7 @@
 
 <script setup lang="uts">
 	import { ref, nextTick } from 'vue'
+	import { callAI } from '@/utils/ai.js'
 	
 	type Msg = {
 		role: string
@@ -110,26 +111,10 @@
 			loading.value = true
 			
 			try {
-				const res: any = await uniCloud.callFunction({
-					name: 'chat',
-					data: {
-						message: userContent,
-						token: token
-					},
-					timeout: 300000
-				})
-				
-				if (res.result.code === 200) {
-					messages.value.push({ role: 'ai', content: res.result.data.response, time: formatTime() })
-					saveHistory('chat', userContent)
-				} else if (res.result.code === 401) {
-					uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-					setTimeout(() => {
-						uni.navigateTo({ url: '/pages/login/index' })
-					}, 1500)
-				} else {
-					messages.value.push({ role: 'ai', content: '错误: ' + (res.result.message || '服务异常'), time: formatTime() })
-				}
+				const systemPrompt = '你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，回答要详细、完整、准确。'
+				const response = await callAI(userContent, systemPrompt)
+				messages.value.push({ role: 'ai', content: response, time: formatTime() })
+				saveHistory('chat', userContent)
 			} catch (e: any) {
 				messages.value.push({ role: 'ai', content: '网络错误: ' + (e.message || String(e)), time: formatTime() })
 			} finally {

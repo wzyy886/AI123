@@ -74,6 +74,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
+import { callAI, formatSize } from '@/utils/ai.js'
 
 const uploadedFileName = ref('')
 const uploadedFilePath = ref('')
@@ -96,12 +97,6 @@ function chooseFile() {
       uni.showToast({ title: '选择文件失败', icon: 'none' })
     }
   })
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
 function removeFile() {
@@ -144,28 +139,29 @@ async function submit() {
       fileUrl = await uploadFileToCloud(uploadedFilePath.value)
     }
     
-    const res: any = await uniCloud.callFunction({
-    name: 'analyze',
-    data: {
-      fileName: uploadedFileName.value,
-      fileContent: fileContent,
-      fileUrl: fileUrl,
-      requirement: requirement.value,
-      token: token
-    },
-    timeout: 300000
-  })
-    
-    if (res.result.code === 200) {
-      result.value = res.result.data.analysis
-    } else if (res.result.code === 401) {
-      uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/login/index' })
-      }, 1500)
+    let prompt = ''
+    if (fileContent) {
+      prompt = `文件名称：${uploadedFileName.value}\n用户需求：${requirement.value}\n\n文件内容：\n${fileContent}`
+    } else if (fileUrl) {
+      const ext = uploadedFileName.value.toLowerCase().substring(uploadedFileName.value.lastIndexOf('.'))
+      const fileTypeMap: { [key: string]: string } = {
+        '.pdf': 'PDF文档', '.doc': 'Word文档', '.docx': 'Word文档',
+        '.xls': 'Excel表格', '.xlsx': 'Excel表格', '.ppt': 'PPT演示文稿',
+        '.pptx': 'PPT演示文稿', '.jpg': '图片文件', '.jpeg': '图片文件',
+        '.png': '图片文件', '.gif': 'GIF动图', '.bmp': '图片文件',
+        '.mp4': '视频文件', '.avi': '视频文件', '.mov': '视频文件',
+        '.mp3': '音频文件', '.wav': '音频文件', '.zip': '压缩文件',
+        '.rar': '压缩文件', '.7z': '压缩文件'
+      }
+      const fileType = fileTypeMap[ext] || '其他文件'
+      prompt = `文件名称：${uploadedFileName.value}\n文件类型：${fileType}\n用户需求：${requirement.value}\n\n请分析这个文件并给出建议。`
     } else {
-      throw new Error(res.result.message || '分析失败')
+      prompt = `文件名称：${uploadedFileName.value}\n用户需求：${requirement.value}\n\n请根据文件名和用户需求进行分析。`
     }
+    
+    const systemPrompt = '你是一个专业的文件分析助手。当前时间是2026年7月。请对文件进行详细、完整的分析，包括文件结构、功能特点、代码逻辑、潜在问题和优化建议等，回答要全面细致，不要简略。'
+    const analysis = await callAI(prompt, systemPrompt)
+    result.value = analysis
   } catch (error: any) {
     uni.showToast({ title: error.message || '网络错误', icon: 'none' })
   } finally {

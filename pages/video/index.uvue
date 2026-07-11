@@ -12,6 +12,15 @@
         <text class="call-status">{{ callStatus }}</text>
       </view>
       
+      <view class="chat-bubble" v-if="aiResponse">
+        <text class="chat-text">{{ aiResponse }}</text>
+      </view>
+      
+      <view class="recording-indicator" v-if="isRecording">
+        <view class="recording-dot"></view>
+        <text class="recording-text">正在听你说...</text>
+      </view>
+      
       <view class="local-video">
         <view class="camera-preview">
           <view class="camera-icon">📷</view>
@@ -41,7 +50,7 @@
           <view class="icon">📹</view>
         </view>
         <text class="title">AI视频通话</text>
-        <text class="subtitle">与AI进行实时视频对话</text>
+        <text class="subtitle">与AI进行实时语音对话</text>
       </view>
       
       <view class="card">
@@ -59,12 +68,12 @@
               </view>
             </view>
           </view>
-          <text class="preview-label">点击下方按钮开始视频通话</text>
+          <text class="preview-label">点击下方按钮开始语音通话</text>
         </view>
         
         <view class="start-btn" :class="{ disabled: loading }" @click="startCall">
           <text class="btn-icon">📞</text>
-          <text class="btn-text">{{ loading ? '正在连接...' : '开始视频通话' }}</text>
+          <text class="btn-text">{{ loading ? '正在连接...' : '开始语音通话' }}</text>
         </view>
         
         <view class="features-list">
@@ -89,7 +98,7 @@
       
       <view class="tips-card">
         <text class="tips-title">💡 使用提示</text>
-        <text class="tips-content">点击开始通话后，AI会通过视频方式与你进行互动。你可以询问任何问题，AI会实时回答。</text>
+        <text class="tips-content">点击开始通话后，AI会通过语音方式与你进行互动。你可以询问任何问题，AI会实时回答。请确保麦克风已开启。</text>
       </view>
     </view>
   </view>
@@ -105,6 +114,11 @@ const videoOff = ref(false)
 const cameraFront = ref(true)
 const previewMuted = ref(false)
 const loading = ref(false)
+const isRecording = ref(false)
+const aiResponse = ref('')
+
+let recognition: any = null
+let isProcessing = false
 
 function toggleCamera() {
   cameraFront.value = !cameraFront.value
@@ -151,6 +165,9 @@ async function startCall() {
       await delay(2000)
       callStatus.value = '通话中'
       
+      initSpeechRecognition()
+      speak('你好，我是AI助手，很高兴与你通话。请问有什么可以帮助你的吗？')
+      
       uni.showToast({ title: '通话已连接', icon: 'success' })
     } else if (res.result.code === 401) {
       uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
@@ -167,6 +184,93 @@ async function startCall() {
   }
 }
 
+function initSpeechRecognition() {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = false
+    recognition.lang = 'zh-CN'
+    
+    recognition.onstart = () => {
+      isRecording.value = true
+    }
+    
+    recognition.onend = () => {
+      isRecording.value = false
+      if (isCalling.value && !muted.value) {
+        setTimeout(() => {
+          try {
+            recognition.start()
+          } catch (e) {
+            console.log('重新启动语音识别失败')
+          }
+        }, 1000)
+      }
+    }
+    
+    recognition.onresult = async (event: any) => {
+      if (isProcessing || muted.value) return
+      
+      const transcript = event.results[event.results.length - 1][0].transcript
+      if (!transcript.trim()) return
+      
+      isProcessing = true
+      aiResponse.value = ''
+      
+      try {
+        const token = uni.getStorageSync('token')
+        const res: any = await uniCloud.callFunction({
+          name: 'chat',
+          data: {
+            message: transcript,
+            token: token
+          }
+        })
+        
+        if (res.result.code === 200) {
+          aiResponse.value = res.result.data.response
+          speak(res.result.data.response)
+        }
+      } catch (error) {
+        console.error('语音请求失败:', error)
+      } finally {
+        isProcessing = false
+      }
+    }
+    
+    recognition.onerror = (event: any) => {
+      console.error('语音识别错误:', event.error)
+    }
+    
+    recognition.start()
+  } else {
+    uni.showToast({ title: '当前浏览器不支持语音识别', icon: 'none' })
+  }
+}
+
+function speak(text: string) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+    
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'zh-CN'
+    utterance.rate = 1
+    utterance.pitch = 1
+    
+    utterance.onstart = () => {
+      callStatus.value = 'AI正在说话...'
+    }
+    
+    utterance.onend = () => {
+      callStatus.value = '通话中'
+    }
+    
+    window.speechSynthesis.speak(utterance)
+  }
+}
+
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
@@ -174,6 +278,14 @@ function delay(ms: number) {
 function toggleMute() {
   muted.value = !muted.value
   uni.showToast({ title: muted.value ? '已静音' : '已取消静音', icon: 'none' })
+  
+  if (recognition) {
+    if (muted.value) {
+      recognition.stop()
+    } else {
+      recognition.start()
+    }
+  }
 }
 
 function toggleVideo() {
@@ -187,6 +299,15 @@ async function endCall() {
     content: '确定要结束通话吗？',
     success: async (res) => {
       if (res.confirm) {
+        if (recognition) {
+          recognition.stop()
+          recognition = null
+        }
+        
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel()
+        }
+        
         const token = uni.getStorageSync('token')
         try {
           await uniCloud.callFunction({
@@ -202,6 +323,7 @@ async function endCall() {
         
         isCalling.value = false
         callStatus.value = '正在连接...'
+        aiResponse.value = ''
         uni.showToast({ title: '通话已结束', icon: 'none' })
       }
     }
@@ -285,6 +407,51 @@ async function endCall() {
 .call-status {
   font-size: 28rpx;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.chat-bubble {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin: 20rpx 40rpx;
+  max-width: 80%;
+}
+
+.chat-text {
+  font-size: 30rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 107, 107, 0.9);
+  padding: 15rpx 30rpx;
+  border-radius: 30rpx;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.recording-dot {
+  width: 16rpx;
+  height: 16rpx;
+  background: #fff;
+  border-radius: 50%;
+  margin-right: 15rpx;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.recording-text {
+  font-size: 26rpx;
+  color: #fff;
 }
 
 .local-video {

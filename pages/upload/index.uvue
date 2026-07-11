@@ -76,6 +76,7 @@
 import { ref } from 'vue'
 
 const uploadedFileName = ref('')
+const uploadedFilePath = ref('')
 const fileSize = ref('')
 const requirement = ref('')
 const result = ref('')
@@ -88,6 +89,7 @@ function chooseFile() {
     success: (res) => {
       const file = res.tempFiles[0]
       uploadedFileName.value = file.name
+      uploadedFilePath.value = file.path
       fileSize.value = formatSize(file.size)
     },
     fail: () => {
@@ -129,10 +131,13 @@ async function submit() {
   loading.value = true
   
   try {
+    const fileContent = await readFileContent(uploadedFilePath.value)
+    
     const res: any = await uniCloud.callFunction({
       name: 'analyze',
       data: {
         fileName: uploadedFileName.value,
+        fileContent: fileContent,
         requirement: requirement.value,
         token: token
       }
@@ -153,6 +158,23 @@ async function submit() {
   } finally {
     loading.value = false
   }
+}
+
+function readFileContent(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fs = uni.getFileSystemManager()
+    fs.readFile({
+      filePath: filePath,
+      encoding: 'utf-8',
+      success: (res) => {
+        resolve(res.data)
+      },
+      fail: (err) => {
+        uni.showToast({ title: '读取文件失败', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
 }
 
 function copyResult() {

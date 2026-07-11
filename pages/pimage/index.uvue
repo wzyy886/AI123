@@ -92,6 +92,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
+import { callAI, generateImage } from '@/utils/ai.js'
 
 const imageUrl = ref('')
 const cloudImageUrl = ref('')
@@ -156,30 +157,22 @@ async function submit() {
     uni.hideLoading()
     uni.showLoading({ title: 'AI分析中...', mask: true })
     
-    const res: any = await uniCloud.callFunction({
-      name: 'image',
-      data: {
-        imageUrl: cloudImageUrl.value,
-        requirement: requirement.value,
-        style: styles.find(s => s.value === selectedStyle.value)?.name || '原图',
-        token: token
-      },
-      timeout: 300000
-    })
+    const styleName = styles.find(s => s.value === selectedStyle.value)?.name || '原图'
+    const analyzePrompt = `图片信息：${cloudImageUrl.value}\n风格：${styleName}\n用户需求：${requirement.value}\n\n请分析图片并给出详细的图片编辑方案。`
+    
+    const systemPrompt = '你是一个专业的AI图片编辑助手。当前时间是2026年7月。请根据用户的需求提供详细的图片编辑方案和建议。'
+    const response = await callAI(analyzePrompt, systemPrompt)
+    suggestion.value = response
+    
+    uni.hideLoading()
+    uni.showLoading({ title: 'AI生成图片中...', mask: true })
+    
+    const imagePrompt = `${styleName}风格，${requirement.value}。高质量，高清，细节丰富。`
+    const resultImageUrl = await generateImage(imagePrompt)
     
     uni.hideLoading()
     
-    if (res.result.code === 200) {
-      suggestion.value = res.result.data.suggestion
-      generatedImageUrl.value = res.result.data.generatedImageUrl || ''
-    } else if (res.result.code === 401) {
-      uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/login/index' })
-      }, 1500)
-    } else {
-      throw new Error(res.result.message || '修图失败')
-    }
+    generatedImageUrl.value = resultImageUrl
   } catch (error: any) {
     uni.hideLoading()
     uni.showModal({

@@ -117,7 +117,8 @@
 </template>
 
 <script setup lang="uts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { callAI } from '@/utils/ai.js'
 
 const isCalling = ref(false)
 const callStatus = ref('正在连接...')
@@ -132,6 +133,33 @@ const chatInput = ref('')
 
 let recognition: any = null
 let isProcessing = false
+let voices: any[] = []
+
+function loadVoices() {
+  const globalObj: any = globalThis || window || {}
+  if (globalObj.speechSynthesis) {
+    voices = globalObj.speechSynthesis.getVoices()
+  }
+}
+
+function setupVoiceListener() {
+  const globalObj: any = globalThis || window || {}
+  if (globalObj.speechSynthesis) {
+    loadVoices()
+    globalObj.speechSynthesis.onvoiceschanged = loadVoices
+  }
+}
+
+onMounted(() => {
+  setupVoiceListener()
+})
+
+onUnmounted(() => {
+  const globalObj: any = globalThis || window || {}
+  if (globalObj.speechSynthesis) {
+    globalObj.speechSynthesis.onvoiceschanged = null
+  }
+})
 
 function toggleCamera() {
   cameraFront.value = !cameraFront.value
@@ -162,35 +190,17 @@ async function startCall() {
   loading.value = true
   
   try {
-    const res: any = await uniCloud.callFunction({
-      name: 'video',
-      data: {
-        action: 'start',
-        token: token
-      },
-      timeout: 300000
-    })
+    isCalling.value = true
+    callStatus.value = '正在连接...'
+    await delay(2000)
+    callStatus.value = 'AI正在准备...'
+    await delay(2000)
+    callStatus.value = '通话中'
     
-    if (res.result.code === 200) {
-      isCalling.value = true
-      callStatus.value = '正在连接...'
-      await delay(2000)
-      callStatus.value = 'AI正在准备...'
-      await delay(2000)
-      callStatus.value = '通话中'
-      
-      initSpeechRecognition()
-      speak('你好，我是AI助手，很高兴与你通话。请问有什么可以帮助你的吗？')
-      
-      uni.showToast({ title: '通话已连接', icon: 'success' })
-    } else if (res.result.code === 401) {
-      uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/login/index' })
-      }, 1500)
-    } else {
-      uni.showToast({ title: res.result.message || '连接失败', icon: 'none' })
-    }
+    initSpeechRecognition()
+    speak('你好，我是AI助手，很高兴与你通话。请问有什么可以帮助你的吗？')
+    
+    uni.showToast({ title: '通话已连接', icon: 'success' })
   } catch (error) {
     uni.showToast({ title: '连接失败', icon: 'none' })
   } finally {
@@ -236,22 +246,13 @@ function initSpeechRecognition() {
         aiResponse.value = ''
         
         try {
-          const token = uni.getStorageSync('token')
-          const res: any = await uniCloud.callFunction({
-            name: 'chat',
-            data: {
-              message: transcript,
-              token: token
-            },
-            timeout: 300000
-          })
-          
-          if (res.result.code === 200) {
-            aiResponse.value = res.result.data.response
-            speak(res.result.data.response)
-          }
+          const systemPrompt = '你是一个可爱的少女AI助手，说话温柔甜美，回答要简洁明了。当前时间是2026年7月。'
+          const response = await callAI(transcript, systemPrompt)
+          aiResponse.value = response
+          speak(response)
         } catch (error) {
           console.error('语音请求失败:', error)
+          speak('抱歉，我现在有点忙，请稍后再试。')
         } finally {
           isProcessing = false
         }
@@ -273,26 +274,52 @@ function initSpeechRecognition() {
 function speak(text: string) {
   try {
     const globalObj: any = globalThis || window || {}
-    if (globalObj.speechSynthesis) {
-      globalObj.speechSynthesis.cancel()
-      
-      const utterance = new (globalObj.SpeechSynthesisUtterance || window.SpeechSynthesisUtterance)(text)
-      utterance.lang = 'zh-CN'
-      utterance.rate = 1
-      utterance.pitch = 1
-      
-      utterance.onstart = () => {
-        callStatus.value = 'AI正在说话...'
-      }
-      
-      utterance.onend = () => {
-        callStatus.value = '通话中'
-      }
-      
-      globalObj.speechSynthesis.speak(utterance)
+    if (!globalObj.speechSynthesis) {
+      uni.showToast({ title: '当前浏览器不支持语音合成', icon: 'none' })
+      return
     }
+    
+    globalObj.speechSynthesis.cancel()
+    
+    const utterance = new (globalObj.SpeechSynthesisUtterance || window.SpeechSynthesisUtterance)(text)
+    utterance.lang = 'zh-CN'
+    utterance.rate = 1.2
+    utterance.pitch = 1.6
+    utterance.volume = 1
+    
+    let girlVoice = voices.find(v => v.name.includes('Microsoft Xiaoxiao') || v.name.includes('Microsoft Lili') || v.name.includes('Microsoft Yaoyao'))
+    if (!girlVoice) {
+      girlVoice = voices.find(v => v.name.includes('Female') && v.lang.includes('zh'))
+    }
+    if (!girlVoice) {
+      girlVoice = voices.find(v => v.lang.includes('zh'))
+    }
+    
+    if (girlVoice) {
+      utterance.voice = girlVoice
+      console.log('使用语音:', girlVoice.name)
+    } else {
+      console.log('未找到中文语音，使用默认语音')
+      uni.showToast({ title: '建议使用Chrome浏览器以获得少女音效果', icon: 'none', duration: 3000 })
+    }
+    
+    utterance.onstart = () => {
+      callStatus.value = 'AI正在说话...'
+    }
+    
+    utterance.onend = () => {
+      callStatus.value = '通话中'
+    }
+    
+    utterance.onerror = (event) => {
+      console.error('语音合成错误:', event)
+      callStatus.value = '通话中'
+    }
+    
+    globalObj.speechSynthesis.speak(utterance)
   } catch (e) {
-    console.log('语音合成失败')
+    console.log('语音合成失败:', e)
+    uni.showToast({ title: '语音合成失败', icon: 'none' })
   }
 }
 
@@ -307,33 +334,13 @@ async function sendChatMessage() {
   try {
     uni.showLoading({ title: 'AI思考中...', mask: true })
     
-    const token = uni.getStorageSync('token')
-    const res: any = await uniCloud.callFunction({
-      name: 'chat',
-      data: {
-        message: message,
-        token: token
-      },
-      timeout: 120000
-    })
+    const systemPrompt = '你是一个可爱的少女AI助手，说话温柔甜美，回答要简洁明了。当前时间是2026年7月。'
+    const response = await callAI(message, systemPrompt)
     
     uni.hideLoading()
     
-    if (res.result.code === 200) {
-      aiResponse.value = res.result.data.response
-      speak(res.result.data.response)
-    } else if (res.result.code === 401) {
-      uni.showToast({ title: '登录已过期', icon: 'none' })
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/login/index' })
-      }, 1500)
-    } else {
-      uni.showModal({
-        title: '发送失败',
-        content: res.result.message || '请求失败',
-        showCancel: false
-      })
-    }
+    aiResponse.value = response
+    speak(response)
   } catch (error: any) {
     uni.hideLoading()
     console.error('发送消息失败:', error)

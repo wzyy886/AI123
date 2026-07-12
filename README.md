@@ -1,247 +1,201 @@
-# AI代码助手网页应用
+# AI代码助手
 
----
+一个基于 uni-app x + uniCloud + 阿里云通义千问API开发的AI多功能助手应用。
 
-## 📖 项目介绍
+## 功能介绍
 
-AI代码助手是一款基于 uni-app x 开发的智能编程辅助应用，集成阿里云通义千问大语言模型，提供代码生成、代码审查、代码解释、文件分析、AI P图等多种功能，帮助开发者提高编程效率。
+### 核心功能
 
-**主要功能**:
-- 💬 **AI问答**: 与AI进行自然语言对话，获取编程问题解答
-- 📝 **代码生成**: 根据需求描述自动生成代码（支持8种编程语言）
-- 🔍 **代码审查**: 检查代码的正确性、安全性、性能问题
-- 📚 **代码解释**: 详细解释代码的功能、执行流程和关键技术点
-- 📁 **文件分析**: 上传文件后AI进行智能分析解答
-- 🎨 **AI P图**: 上传图片后AI进行编辑处理
-- 📹 **视频通话**: 与AI进行模拟视频通话交互
+| 功能模块 | 说明 | 页面路径 |
+|----------|------|----------|
+| AI问答 | 智能对话问答，支持上下文 | `pages/index/index.uvue` |
+| 文件分析 | 上传代码/文档/数据文件，AI分析解读 | `pages/upload/index.uvue` |
+| 代码生成 | 根据需求生成多语言代码 | `pages/generate/index.uvue` |
+| 代码审查 | AI自动审查代码，给出优化建议 | `pages/review/index.uvue` |
+| 代码解释 | 逐行解释代码逻辑 | `pages/explain/index.uvue` |
+| AI P图 | 上传图片，AI智能编辑美化 | `pages/pimage/index.uvue` |
+| 视频通话 | AI视频通话交互 | `pages/video/index.uvue` |
 
----
+### 辅助功能
 
-## 🛠️ 技术栈
+| 功能 | 说明 |
+|------|------|
+| 用户系统 | 注册、登录、Token认证 |
+| 历史记录 | 保存聊天和使用记录 |
+| 收藏功能 | 收藏常用内容 |
+| 个人中心 | 用户信息管理 |
 
-| 分类 | 技术 | 版本 |
-|------|------|------|
-| 前端框架 | uni-app x | 3.x |
-| 编程语言 | Vue 3 + UTS | - |
-| 样式语言 | SCSS | - |
-| 后端服务 | uniCloud | - |
-| AI模型 | 阿里云通义千问 | qwen-turbo / wanxiang-v1 |
-| CI/CD | GitHub Actions | - |
+## 技术栈
 
----
+### 前端
 
-## 📦 安装与运行
+- **框架**: uni-app x (Vue 3 + UTS)
+- **UI**: 原生组件
+- **适配**: H5 / 小程序 / App 多端
+
+### 后端
+
+- **云服务**: uniCloud (阿里云版)
+- **云函数**: 12个独立云函数
+- **数据库**: 云数据库 (NoSQL)
+
+### AI能力
+
+- **大模型**: 通义千问 qwen-turbo
+- **图片生成**: 万象 AI (wanxiang-v1)
+- **提供方**: 阿里云 DashScope API
+
+## 项目结构
+
+```
+├── pages/                     # 前端页面
+│   ├── index/                 # 首页 - AI问答
+│   ├── upload/                # 文件分析
+│   ├── generate/              # 代码生成
+│   ├── review/                # 代码审查
+│   ├── explain/               # 代码解释
+│   ├── pimage/                # AI P图
+│   ├── video/                 # 视频通话
+│   ├── login/                 # 登录
+│   ├── register/              # 注册
+│   ├── history/               # 历史记录
+│   ├── favorites/             # 收藏
+│   └── mine/                  # 个人中心
+├── uniCloud-aliyun/           # 云服务
+│   └── cloudfunctions/        # 云函数
+│       ├── chat/              # 聊天
+│       ├── login/             # 登录
+│       ├── register/          # 注册
+│       ├── generate/          # 代码生成
+│       ├── review/            # 代码审查
+│       ├── explain/           # 代码解释
+│       ├── analyze/           # 文件分析
+│       ├── image/             # 图片处理
+│       ├── video/             # 视频通话
+│       ├── saveRecord/        # 保存记录
+│       └── common/            # 公共模块
+│           ├── uni-config-center/  # 配置中心
+│           └── utils/         # 工具函数
+├── utils/                     # 前端工具
+│   └── ai.js                  # AI调用封装
+├── .github/workflows/         # CI/CD配置
+├── test/                      # 单元测试
+├── API.md                     # API接口文档
+├── code_review.md             # AI代码审查报告
+├── prompt_log.md              # Prompt日志
+└── summary.md                 # 个人总结
+```
+
+## 快速开始
 
 ### 环境要求
 
-- Node.js >= 20.x
-- HBuilder X >= 4.10.0
-- 阿里云账号（用于获取 DashScope API Key）
+- HBuilderX 3.8+
+- uniCloud 账号
+- 阿里云 DashScope API Key
 
 ### 安装步骤
 
-1. **克隆项目**
-```bash
-git clone https://github.com/wzyy886/AI123.git
-cd AI123
-```
+1. **导入项目**
+   ```
+   用 HBuilderX 打开项目目录
+   ```
 
-2. **安装依赖**
-```bash
-npm install
-```
+2. **配置云服务**
+   ```
+   右键 uniCloud-aliyun → 关联云服务空间
+   ```
 
-3. **配置环境变量**
-```bash
-cp .env.example .env
-```
+3. **配置 API Key**
+   - 打开 `uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js`
+   - 填入你的阿里云 DashScope API Key
 
-编辑 `.env` 文件，填入你的阿里云 DashScope API Key：
-```env
-DASHSCOPE_API_KEY=your_api_key_here
-```
+4. **上传云函数**
+   ```
+   右键每个云函数 → 上传部署
+   ```
 
-4. **配置 uniCloud**
-- 在 HBuilder X 中右键 `uniCloud-aliyun` 目录
-- 选择 `关联云服务空间或项目`
-- 选择或创建你的云服务空间
+5. **初始化数据库**
+   - 在 uniCloud 控制台创建以下数据表：
+     - `users` - 用户表
+     - `chat_history` - 聊天历史
+     - `file_history` - 文件分析历史
+     - `image_history` - 图片生成历史
+     - `video_calls` - 视频通话记录
 
-5. **上传云函数**
-- 在 HBuilder X 中右键 `uniCloud-aliyun/cloudfunctions/` 目录
-- 选择 `上传并部署：云端安装依赖`
+6. **运行项目**
+   ```
+   HBuilderX → 运行 → 运行到浏览器 / 运行到小程序模拟器
+   ```
 
-6. **上传数据库 Schema**
-- 在 HBuilder X 中右键 `uniCloud-aliyun/database/` 目录
-- 选择 `上传所有DB Schema`
+## 云函数列表
 
-### 运行项目
+| 云函数 | 功能 | 入口文件 |
+|--------|------|----------|
+| chat | AI聊天问答 | [chat/index.js](uniCloud-aliyun/cloudfunctions/chat/index.js) |
+| login | 用户登录 | [login/index.js](uniCloud-aliyun/cloudfunctions/login/index.js) |
+| register | 用户注册 | [register/index.js](uniCloud-aliyun/cloudfunctions/register/index.js) |
+| generate | 代码生成 | [generate/index.js](uniCloud-aliyun/cloudfunctions/generate/index.js) |
+| review | 代码审查 | [review/index.js](uniCloud-aliyun/cloudfunctions/review/index.js) |
+| explain | 代码解释 | [explain/index.js](uniCloud-aliyun/cloudfunctions/explain/index.js) |
+| analyze | 文件分析 | [analyze/index.js](uniCloud-aliyun/cloudfunctions/analyze/index.js) |
+| image | 图片处理 | [image/index.js](uniCloud-aliyun/cloudfunctions/image/index.js) |
+| video | 视频通话 | [video/index.js](uniCloud-aliyun/cloudfunctions/video/index.js) |
+| saveRecord | 保存记录 | [saveRecord/index.js](uniCloud-aliyun/cloudfunctions/saveRecord/index.js) |
 
-**开发模式**:
-- 在 HBuilder X 中点击 `运行` → `运行到浏览器` → `Chrome`
+## 数据库设计
 
-**构建生产版本**:
-```bash
-npm run build:h5
-```
+### users 用户表
 
----
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 用户ID |
+| username | string | 用户名 |
+| password | string | 密码哈希 (SHA256 + salt) |
+| salt | string | 密码盐值 |
+| token | string | 登录令牌 |
+| token_expire | number | 令牌过期时间戳 |
+| create_time | number | 创建时间 |
 
-## 🗂️ 项目结构
+### chat_history 聊天历史表
 
-```
-AI123/
-├── pages/                    # 页面目录
-│   ├── index/               # AI问答页面
-│   ├── login/               # 登录页面
-│   ├── register/            # 注册页面
-│   ├── generate/            # 代码生成页面
-│   ├── review/              # 代码审查页面
-│   ├── explain/             # 代码解释页面
-│   ├── upload/              # 文件分析页面
-│   ├── pimage/              # AI P图页面
-│   ├── video/               # 视频通话页面
-│   ├── mine/                # 个人中心页面
-│   ├── history/             # 历史记录页面
-│   └── favorites/           # 收藏夹页面
-├── uniCloud-aliyun/         # uniCloud 云开发
-│   ├── cloudfunctions/      # 云函数
-│   │   ├── chat/            # AI聊天接口
-│   │   ├── login/           # 用户登录接口
-│   │   ├── register/        # 用户注册接口
-│   │   ├── generate/        # 代码生成接口
-│   │   ├── review/          # 代码审查接口
-│   │   ├── explain/         # 代码解释接口
-│   │   ├── analyze/         # 文件分析接口
-│   │   ├── image/           # 图片处理接口
-│   │   ├── video/           # 视频通话接口
-│   │   └── saveRecord/      # 记录保存接口
-│   └── database/            # 数据库配置
-│       └── schema/          # 数据表结构
-├── utils/                   # 工具函数
-│   └── ai.js               # AI调用工具函数
-├── static/                  # 静态资源
-├── App.uvue                 # 应用入口
-├── pages.json               # 页面路由配置
-├── manifest.json            # 应用配置
-├── uni.scss                 # 全局样式变量
-└── .github/workflows/       # CI/CD配置
-```
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 记录ID |
+| user_id | string | 用户ID |
+| message | string | 用户消息 |
+| reply | string | AI回复 |
+| create_time | number | 创建时间 |
 
----
+## 安全机制
 
-## 🔌 API 文档
+- **密码加密**: SHA256 + salt 加盐哈希
+- **Token认证**: 随机32位十六进制令牌，支持过期失效
+- **输入验证**: 过滤 XSS 特殊字符、script 关键词、事件处理器
+- **API保护**: API Key 存储在云函数，前端不持有
+- **匿名支持**: 未登录用户也可使用，记录为 anonymous
 
-详细的 API 文档请参考 [API.md](API.md)。
+## API文档
 
----
+详细接口文档请查看 [API.md](API.md)
 
-## 📊 数据库设计
+## 开发工具
 
-### 用户表 (users)
+| 工具 | 用途 |
+|------|------|
+| Trae AI | 代码审查、重构建议、问题排查 |
+| HBuilderX | 前端开发、云函数部署 |
+| uniCloud控制台 | 数据库管理、日志查看 |
+| Jest | 单元测试 |
+| ESLint | 代码规范检查 |
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| _id | string | 是 | 用户ID |
-| username | string | 是 | 用户名 |
-| password | string | 是 | 密码哈希 |
-| salt | string | 是 | 密码盐值 |
-| email | string | 否 | 邮箱 |
-| token | string | 否 | 登录Token |
-| tokenExpireAt | long | 否 | Token过期时间 |
-| status | number | 是 | 状态（1=正常，0=禁用） |
-| createdAt | long | 是 | 创建时间 |
-| lastLoginAt | long | 否 | 最后登录时间 |
+## 相关文档
 
-### 聊天记录表 (chat_history)
+- [API接口文档](API.md)
+- [AI代码审查报告](code_review.md)
+- [Prompt日志](prompt_log.md)
+- [个人总结报告](summary.md)
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| _id | string | 是 | 记录ID |
-| userId | string | 是 | 用户ID |
-| username | string | 是 | 用户名 |
-| message | string | 是 | 用户消息 |
-| response | string | 是 | AI回复 |
-| type | string | 否 | 类型（chat/generate/review/explain） |
-| language | string | 否 | 编程语言 |
-| createdAt | long | 是 | 创建时间 |
+## 许可证
 
-### 文件分析表 (file_history)
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| _id | string | 是 | 记录ID |
-| userId | string | 是 | 用户ID |
-| username | string | 是 | 用户名 |
-| fileName | string | 是 | 文件名 |
-| fileContent | string | 否 | 文件内容 |
-| requirement | string | 是 | 用户需求 |
-| analysis | string | 是 | 分析结果 |
-| createdAt | long | 是 | 创建时间 |
-
-### 图片编辑表 (image_history)
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| _id | string | 是 | 记录ID |
-| userId | string | 是 | 用户ID |
-| username | string | 是 | 用户名 |
-| imageUrl | string | 是 | 图片URL |
-| style | string | 否 | 处理风格 |
-| requirement | string | 是 | 用户需求 |
-| result | string | 是 | 处理结果 |
-| createdAt | long | 是 | 创建时间 |
-
-### 视频通话表 (video_calls)
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| _id | string | 是 | 记录ID |
-| userId | string | 是 | 用户ID |
-| username | string | 是 | 用户名 |
-| status | string | 是 | 状态（started/ended） |
-| duration | number | 否 | 通话时长（秒） |
-| createdAt | long | 是 | 创建时间 |
-
----
-
-## 🧪 测试
-
-### 运行单元测试
-
-```bash
-cd uniCloud-aliyun/cloudfunctions/common/utils
-npm install
-npx jest --coverage
-```
-
-### CI/CD 测试
-
-项目配置了 GitHub Actions CI/CD 流水线，每次推送代码会自动执行：
-1. **构建检查**: 云函数语法检查、JSON配置验证、文档完整性检查
-2. **单元测试**: 运行所有测试用例，检查代码覆盖率
-
----
-
-## 📝 开发规范
-
-### Commit Message 规范
-
-使用 Conventional Commits 规范：
-- `feat`: 新功能
-- `fix`: 修复bug
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 代码重构
-- `test`: 测试相关
-- `chore`: 构建/工具配置
-
-### 代码风格
-
-- 变量命名使用 camelCase
-- 组件命名使用 PascalCase
-- 函数命名使用 camelCase
-- 常量命名使用 UPPER_CASE_SNAKE_CASE
-- 缩进使用 2 个空格
-
----
-
+MIT License

@@ -98,7 +98,19 @@ async function handler(event, context) {
     });
 
     if (res.status === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
-      return { code: 200, message: 'success', data: { analysis: res.data.choices[0].message.content } };
+      const analysis = res.data.choices[0].message.content;
+      
+      await db.collection('file_history').add({
+        userId: userData._id,
+        username: userData.username,
+        fileName: sanitizedFileName,
+        fileUrl: fileUrl || '',
+        requirement: sanitizedRequirement,
+        analysis: analysis,
+        createdAt: new Date().getTime()
+      });
+      
+      return { code: 200, message: 'success', data: { analysis: analysis } };
     } else {
       return { code: 500, message: 'AI服务暂时不可用，请稍后重试', data: null };
     }

@@ -80,8 +80,20 @@ async function handler(event, context) {
     });
 
     if (res.status === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
+      const suggestion = res.data.choices[0].message.content;
+      
+      await db.collection('image_history').add({
+        userId: userData._id,
+        username: userData.username,
+        imageUrl: sanitizedImageUrl,
+        style: sanitizedStyle || '原图',
+        requirement: sanitizedRequirement,
+        suggestion: suggestion,
+        createdAt: new Date().getTime()
+      });
+      
       return { code: 200, message: 'success', data: {
-        suggestion: res.data.choices[0].message.content,
+        suggestion: suggestion,
         generatedImageUrl: ''
       } };
     } else {

@@ -3,7 +3,7 @@ const MAX_RETRIES = 2
 const DEVELOPMENT_MODE = true
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 
 function callCloudFunction(name, data, retryCount = 0) {
   return new Promise((resolve, reject) => {
@@ -24,19 +24,23 @@ function callCloudFunction(name, data, retryCount = 0) {
           reject(new Error('登录已过期，请重新登录'))
         } else if (result && result.code === 400) {
           reject(new Error(result.message || '请求参数有误'))
+        } else if (result && result.code === 429) {
+          reject(new Error('请求过于频繁，请稍后再试'))
         } else {
+          if (DEVELOPMENT_MODE) {
+            callDirectApi(name, data).then(resolve).catch(reject)
+            return
+          }
           reject(new Error(result?.message || '服务暂时不可用，请稍后重试'))
         }
       },
       fail: (err) => {
         if (DEVELOPMENT_MODE) {
-          const apiFallback = getApiFallback(name)
-          if (apiFallback) {
-            apiFallback(data).then(resolve).catch(reject)
-          } else {
-            reject(new Error('服务暂时不可用，请稍后重试'))
-          }
-        } else if (retryCount < MAX_RETRIES) {
+          callDirectApi(name, data).then(resolve).catch(reject)
+          return
+        }
+        
+        if (retryCount < MAX_RETRIES) {
           const delay = 1000 * Math.pow(2, retryCount)
           setTimeout(() => {
             callCloudFunction(name, data, retryCount + 1).then(resolve).catch(reject)
@@ -49,183 +53,109 @@ function callCloudFunction(name, data, retryCount = 0) {
   })
 }
 
-function callAIAPI(message, systemPrompt, maxTokens = 4096) {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE_URL,
-      method: 'POST',
-      header: {
-        'Authorization': 'Bearer ' + API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
+function callDirectApi(name, data) {
+  let endpoint = '/chat/completions'
+  let requestData = {}
+  
+  switch (name) {
+    case 'chat':
+      requestData = {
         model: 'qwen-turbo',
         messages: [
-          { role: 'system', content: systemPrompt || '你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，回答要详细、完整、准确。' },
-          { role: 'user', content: message }
+          { role: 'system', content: data.systemPrompt || '你是一个精通2026年最新技术的AI助手。当前时间是2026年7月，请使用2025-2026年最新技术回答问题。' },
+          { role: 'user', content: data.message }
         ],
-        max_tokens: maxTokens,
+        max_tokens: data.maxTokens || 8192,
         temperature: 0.7
-      },
-      timeout: 600000,
-      success: (res) => {
-        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
-          resolve({ response: res.data.choices[0].message.content })
-        } else {
-          reject(new Error('AI服务暂时不可用，请稍后重试'))
-        }
-      },
-      fail: (err) => {
-        reject(new Error('网络连接失败，请检查网络后重试'))
       }
-    })
-  })
-}
-
-function generateCodeAPI(language, description) {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE_URL,
-      method: 'POST',
-      header: {
-        'Authorization': 'Bearer ' + API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
+      break
+    case 'generate':
+      requestData = {
         model: 'qwen-turbo',
         messages: [
           { role: 'system', content: '你是一个精通2026年最新技术的代码生成助手。当前时间是2026年7月，请使用2025-2026年最新的技术栈生成代码。代码需要完整，包含必要的注释。' },
-          { role: 'user', content: `使用${language || 'JavaScript'}语言，实现以下功能：${description}` }
+          { role: 'user', content: `使用${data.language || 'JavaScript'}语言，实现以下功能：${data.description}` }
         ],
-        max_tokens: 2048,
+        max_tokens: 4096,
         temperature: 0.7
-      },
-      timeout: 600000,
-      success: (res) => {
-        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
-          resolve({ response: res.data.choices[0].message.content })
-        } else {
-          reject(new Error('AI服务暂时不可用，请稍后重试'))
-        }
-      },
-      fail: (err) => {
-        reject(new Error('网络连接失败，请检查网络后重试'))
       }
-    })
-  })
-}
-
-function reviewCodeAPI(language, code) {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE_URL,
-      method: 'POST',
-      header: {
-        'Authorization': 'Bearer ' + API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
+      break
+    case 'review':
+      requestData = {
         model: 'qwen-turbo',
         messages: [
           { role: 'system', content: '你是一个精通2026年最新技术的代码审查助手。请检查代码的正确性、安全性、性能问题和代码风格，并给出改进建议。' },
-          { role: 'user', content: `请审查以下${language || 'JavaScript'}代码：\n\n${code}` }
+          { role: 'user', content: `请审查以下${data.language || 'JavaScript'}代码：\n\n${data.code}` }
         ],
-        max_tokens: 2048,
+        max_tokens: 4096,
         temperature: 0.5
-      },
-      timeout: 600000,
-      success: (res) => {
-        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
-          resolve({ response: res.data.choices[0].message.content })
-        } else {
-          reject(new Error('AI服务暂时不可用，请稍后重试'))
-        }
-      },
-      fail: (err) => {
-        reject(new Error('网络连接失败，请检查网络后重试'))
       }
-    })
-  })
-}
-
-function explainCodeAPI(language, code) {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE_URL,
-      method: 'POST',
-      header: {
-        'Authorization': 'Bearer ' + API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
+      break
+    case 'explain':
+      requestData = {
         model: 'qwen-turbo',
         messages: [
           { role: 'system', content: '你是一个精通2026年最新技术的代码解释助手。请详细解释代码的功能、执行流程和关键技术点。' },
-          { role: 'user', content: `请解释以下${language || 'JavaScript'}代码：\n\n${code}` }
+          { role: 'user', content: `请解释以下${data.language || 'JavaScript'}代码：\n\n${data.code}` }
         ],
-        max_tokens: 2048,
+        max_tokens: 4096,
         temperature: 0.5
-      },
-      timeout: 600000,
-      success: (res) => {
-        if (res.statusCode === 200 && res.data?.choices && res.data.choices.length > 0) {
-          resolve({ response: res.data.choices[0].message.content })
-        } else {
-          reject(new Error('AI服务暂时不可用，请稍后重试'))
-        }
-      },
-      fail: (err) => {
-        reject(new Error('网络连接失败，请检查网络后重试'))
       }
-    })
-  })
-}
-
-function generateImageAPI(prompt) {
+      break
+    case 'image':
+      requestData = {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: '你是一个专业的AI图像编辑助手。当前时间是2026年7月。你可以帮助用户进行图片处理、修图、设计等工作。请根据用户的图片描述和需求，提供详细的图片编辑方案和建议。' },
+          { role: 'user', content: `图片信息：${data.imageUrl || '已上传图片'}\n风格：${data.style || '原图'}\n用户需求：${data.requirement}\n\n请提供详细的图片编辑方案和建议。` }
+        ],
+        max_tokens: 4096,
+        temperature: 0.7
+      }
+      break
+    case 'analyze':
+      let prompt = ''
+      if (data.fileContent) {
+        prompt = `文件名称：${data.fileName}\n用户需求：${data.requirement}\n\n文件内容：\n${data.fileContent}`
+      } else {
+        prompt = `文件名称：${data.fileName}\n用户需求：${data.requirement}\n\n请根据文件名和用户需求进行分析。`
+      }
+      requestData = {
+        model: 'qwen-turbo',
+        messages: [
+          { role: 'system', content: '你是一个专业的文件分析助手。当前时间是2026年7月。你可以分析各种类型的文件，包括代码文件、文档文件、数据文件等。请根据用户的需求提供详细的分析报告。' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 4096,
+        temperature: 0.7
+      }
+      break
+    default:
+      return Promise.reject(new Error('不支持的API调用'))
+  }
+  
   return new Promise((resolve, reject) => {
     uni.request({
-      url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync',
+      url: BASE_URL + endpoint,
       method: 'POST',
       header: {
         'Authorization': 'Bearer ' + API_KEY,
         'Content-Type': 'application/json'
       },
-      data: {
-        model: 'wanxiang-v1',
-        input: { prompt: prompt }
-      },
-      timeout: 600000,
+      data: requestData,
+      timeout: 300000,
       success: (res) => {
-        if (res.statusCode === 200 && res.data?.output?.url_list && res.data.output.url_list.length > 0) {
-          resolve({ url: res.data.output.url_list[0] })
+        if (res.statusCode === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
+          resolve({ response: res.data.choices[0].message.content })
         } else {
-          reject(new Error('图片生成失败，请稍后重试'))
+          reject(new Error('AI服务暂时不可用'))
         }
       },
       fail: (err) => {
-        reject(new Error('网络连接失败，请检查网络后重试'))
+        reject(new Error('网络连接失败'))
       }
     })
   })
-}
-
-function getApiFallback(name) {
-  switch (name) {
-    case 'chat':
-      return (data) => callAIAPI(data.message, data.systemPrompt, data.maxTokens)
-    case 'generate':
-      return (data) => generateCodeAPI(data.language, data.description)
-    case 'review':
-      return (data) => reviewCodeAPI(data.language, data.code)
-    case 'explain':
-      return (data) => explainCodeAPI(data.language, data.code)
-    case 'image':
-      return (data) => generateImageAPI(data.prompt)
-    case 'analyze':
-      return (data) => callAIAPI(data.prompt, '你是一个专业的文件分析助手。请根据用户的需求提供详细的分析报告。')
-    default:
-      return null
-  }
 }
 
 function callAI(message, systemPrompt, maxTokens = 8192) {
@@ -311,6 +241,9 @@ function getUserFriendlyError(error) {
   }
   if (message.includes('500') || message.includes('服务器')) {
     return '服务器繁忙，请稍后重试'
+  }
+  if (message.includes('429')) {
+    return '请求过于频繁，请稍后再试'
   }
   return message
 }

@@ -5,15 +5,46 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 
-function hashPassword(password) {
+function generateSalt(length = 16) {
+  if (length === null || length === undefined || typeof length !== 'number') {
+    length = 16;
+  }
+  if (length <= 0) {
+    throw new Error('盐值长度必须大于0');
+  }
+  return crypto.randomBytes(length).toString('hex');
+}
+
+function hashPassword(password, salt = null) {
   if (!password || typeof password !== 'string') {
     throw new Error('密码不能为空');
   }
-  return crypto.createHash('sha256').update(password).digest('hex');
+  const actualSalt = salt || generateSalt();
+  const hash = crypto.createHash('sha256').update(password + actualSalt).digest('hex');
+  return { hash: hash, salt: actualSalt };
+}
+
+function verifyPassword(password, hash, salt) {
+  if (!password || !hash || !salt) {
+    return false;
+  }
+  const computedHash = crypto.createHash('sha256').update(password + salt).digest('hex');
+  return computedHash === hash;
 }
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+function generateTokenWithExpiry(expireMinutes = 1440) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expireAt = Date.now() + expireMinutes * 60 * 1000;
+  return { token: token, expireAt: expireAt };
+}
+
+function isTokenExpired(expireAt) {
+  if (!expireAt) return true;
+  return Date.now() > expireAt;
 }
 
 function validateUsername(username) {
@@ -223,6 +254,40 @@ function asyncErrorHandler(fn, moduleName) {
   };
 }
 
+const requestCounts = new Map();
+const RATE_LIMIT_WINDOW = 60000;
+const RATE_LIMIT_MAX = 30;
+
+function checkRateLimit(userId) {
+  if (!userId) {
+    return { allowed: true, remaining: RATE_LIMIT_MAX };
+  }
+  
+  const now = Date.now();
+  const record = requestCounts.get(userId);
+  
+  if (!record || now - record.windowStart > RATE_LIMIT_WINDOW) {
+    requestCounts.set(userId, {
+      windowStart: now,
+      count: 1
+    });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil((record.windowStart + RATE_LIMIT_WINDOW - now) / 1000);
+    return { 
+      allowed: false, 
+      remaining: 0,
+      message: '请求过于频繁，请稍后再试',
+      retryAfter: retryAfter
+    };
+  }
+  
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count };
+}
+
 function loadConfig() {
   const defaults = {
     NODE_ENV: 'development',
@@ -238,7 +303,10 @@ function loadConfig() {
     AI_CHAT_MODEL: 'qwen-turbo',
     AI_IMAGE_MODEL: 'wanxiang-v1',
     AI_MAX_TOKENS: '8192',
-    AI_TEMPERATURE: '0.7'
+    AI_TEMPERATURE: '0.7',
+    TOKEN_EXPIRE_MINUTES: '1440',
+    RATE_LIMIT_MAX: '30',
+    RATE_LIMIT_WINDOW_MS: '60000'
   };
   
   const config = {};
@@ -250,8 +318,12 @@ function loadConfig() {
 }
 
 module.exports = {
+  generateSalt,
   hashPassword,
+  verifyPassword,
   generateToken,
+  generateTokenWithExpiry,
+  isTokenExpired,
   validateUsername,
   validatePassword,
   validateEmail,
@@ -263,5 +335,6 @@ module.exports = {
   getErrorStats,
   sendErrorAlert,
   asyncErrorHandler,
+  checkRateLimit,
   loadConfig
 };

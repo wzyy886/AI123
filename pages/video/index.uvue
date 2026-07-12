@@ -118,7 +118,31 @@
 
 <script setup lang="uts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { callAI } from '@/utils/ai.js'
+import { callAI, getUserFriendlyError } from '@/utils/ai.js'
+
+type SpeechRecognitionType = {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onstart?: () => void
+  onend?: () => void
+  onresult?: (event: SpeechRecognitionEvent) => void
+  onerror?: (event: SpeechRecognitionError) => void
+  start: () => void
+  stop: () => void
+}
+
+type SpeechSynthesisVoice = {
+  name: string
+  lang: string
+}
+
+type GlobalObjType = {
+  SpeechRecognition?: typeof SpeechRecognition
+  webkitSpeechRecognition?: typeof SpeechRecognition
+  speechSynthesis?: SpeechSynthesis
+  SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance
+}
 
 const isCalling = ref(false)
 const callStatus = ref('正在连接...')
@@ -131,19 +155,19 @@ const isRecording = ref(false)
 const aiResponse = ref('')
 const chatInput = ref('')
 
-let recognition: any = null
+let recognition: SpeechRecognitionType | null = null
 let isProcessing = false
-let voices: any[] = []
+let voices: SpeechSynthesisVoice[] = []
 
 function loadVoices() {
-  const globalObj: any = globalThis || window || {}
+  const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
   if (globalObj.speechSynthesis) {
     voices = globalObj.speechSynthesis.getVoices()
   }
 }
 
 function setupVoiceListener() {
-  const globalObj: any = globalThis || window || {}
+  const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
   if (globalObj.speechSynthesis) {
     loadVoices()
     globalObj.speechSynthesis.onvoiceschanged = loadVoices
@@ -155,9 +179,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  const globalObj: any = globalThis || window || {}
+  const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
   if (globalObj.speechSynthesis) {
-    globalObj.speechSynthesis.onvoiceschanged = null
+    globalObj.speechSynthesis.onvoiceschanged = null as any
   }
 })
 
@@ -202,7 +226,7 @@ async function startCall() {
     
     uni.showToast({ title: '通话已连接', icon: 'success' })
   } catch (error) {
-    uni.showToast({ title: '连接失败', icon: 'none' })
+    uni.showToast({ title: getUserFriendlyError(error), icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -210,11 +234,11 @@ async function startCall() {
 
 function initSpeechRecognition() {
   try {
-    const globalObj: any = globalThis || window || {}
-    const SpeechRecognition = globalObj.SpeechRecognition || globalObj.webkitSpeechRecognition
+    const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
+    const SpeechRecognitionClass = globalObj.SpeechRecognition || globalObj.webkitSpeechRecognition
     
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition()
+    if (SpeechRecognitionClass) {
+      recognition = new SpeechRecognitionClass() as SpeechRecognitionType
       recognition.continuous = true
       recognition.interimResults = false
       recognition.lang = 'zh-CN'
@@ -225,10 +249,10 @@ function initSpeechRecognition() {
       
       recognition.onend = () => {
         isRecording.value = false
-        if (isCalling.value && !muted.value) {
+        if (isCalling.value && !muted.value && recognition) {
           setTimeout(() => {
             try {
-              recognition.start()
+              recognition?.start()
             } catch (e) {
               console.log('重新启动语音识别失败')
             }
@@ -236,7 +260,7 @@ function initSpeechRecognition() {
         }
       }
       
-      recognition.onresult = async (event: any) => {
+      recognition.onresult = async (event) => {
         if (isProcessing || muted.value) return
         
         const transcript = event.results[event.results.length - 1][0].transcript
@@ -258,7 +282,7 @@ function initSpeechRecognition() {
         }
       }
       
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event) => {
         console.error('语音识别错误:', event.error)
       }
       
@@ -273,7 +297,7 @@ function initSpeechRecognition() {
 
 function speak(text: string) {
   try {
-    const globalObj: any = globalThis || window || {}
+    const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
     if (!globalObj.speechSynthesis) {
       uni.showToast({ title: '当前浏览器不支持语音合成', icon: 'none' })
       return
@@ -281,7 +305,8 @@ function speak(text: string) {
     
     globalObj.speechSynthesis.cancel()
     
-    const utterance = new (globalObj.SpeechSynthesisUtterance || window.SpeechSynthesisUtterance)(text)
+    const utteranceClass = globalObj.SpeechSynthesisUtterance || window.SpeechSynthesisUtterance
+    const utterance = new utteranceClass(text)
     utterance.lang = 'zh-CN'
     utterance.rate = 1.2
     utterance.pitch = 1.6
@@ -296,7 +321,7 @@ function speak(text: string) {
     }
     
     if (girlVoice) {
-      utterance.voice = girlVoice
+      (utterance as any).voice = girlVoice
       console.log('使用语音:', girlVoice.name)
     } else {
       console.log('未找到中文语音，使用默认语音')
@@ -311,8 +336,8 @@ function speak(text: string) {
       callStatus.value = '通话中'
     }
     
-    utterance.onerror = (event) => {
-      console.error('语音合成错误:', event)
+    utterance.onerror = () => {
+      console.error('语音合成错误')
       callStatus.value = '通话中'
     }
     
@@ -341,12 +366,12 @@ async function sendChatMessage() {
     
     aiResponse.value = response
     speak(response)
-  } catch (error: any) {
+  } catch (error) {
     uni.hideLoading()
     console.error('发送消息失败:', error)
     uni.showModal({
       title: '发送失败',
-      content: error.message || '网络超时，请检查云函数是否已部署',
+      content: getUserFriendlyError(error),
       showCancel: false
     })
   } finally {
@@ -355,7 +380,7 @@ async function sendChatMessage() {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
 }
 
 function toggleMute() {
@@ -388,12 +413,11 @@ async function endCall() {
         }
         
         try {
-          const globalObj: any = globalThis || window || {}
+          const globalObj: GlobalObjType = (globalThis as GlobalObjType) || (window as GlobalObjType) || {}
           if (globalObj.speechSynthesis) {
             globalObj.speechSynthesis.cancel()
           }
         } catch (e) {}
-        
         
         const token = uni.getStorageSync('token')
         try {

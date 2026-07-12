@@ -1,6 +1,6 @@
 # AI助手 - 全能型AI智能助手
 
-一个基于 uni-app x 框架开发的全能型AI助手应用，集成了AI问答、文件分析、图片编辑、视频通话等多种功能。
+一个基于 uni-app x 框架开发的全能型AI智能助手应用，集成了AI问答、文件分析、图片编辑、视频通话等多种功能。
 
 ## 技术栈
 
@@ -10,6 +10,7 @@
 - **语音合成**: Web Speech API
 - **测试框架**: Jest
 - **CI/CD**: GitHub Actions
+- **API文档**: OpenAPI 3.0.1 (openapi.json)
 
 ## 功能特性
 
@@ -35,20 +36,20 @@
 
 ### 5. 用户系统
 - 用户注册与登录
-- Token认证机制
+- Token认证机制（24小时过期）
 - 个人中心管理
 
 ### 6. 代码工具
-- 代码生成
-- 代码审查
-- 代码解释
+- 代码生成（8种编程语言）
+- 代码审查（8种编程语言）
+- 代码解释（8种编程语言）
 
 ## 项目结构
 
 ```
 ai/
 ├── pages/                     # 前端页面
-│   ├── login/index.uvue       # 登录页
+│   ├── login/index.uvue       # 登录页（含离线模式回退）
 │   ├── register/index.uvue    # 注册页
 │   ├── index/index.uvue       # 问答页
 │   ├── upload/index.uvue      # 文件分析页
@@ -62,8 +63,8 @@ ai/
 │   └── favorites/index.uvue   # 收藏夹页
 ├── uniCloud-aliyun/           # 后端云函数
 │   └── cloudfunctions/
-│       ├── register/          # 用户注册API
-│       ├── login/             # 用户登录API
+│       ├── register/          # 用户注册API（加盐哈希）
+│       ├── login/             # 用户登录API（Token过期机制）
 │       ├── chat/              # AI问答API
 │       ├── analyze/           # 文件分析API
 │       ├── image/             # 图片编辑API
@@ -75,13 +76,14 @@ ai/
 │           ├── utils/         # 公共工具模块（含单元测试）
 │           └── uni-config-center/ai-config/  # 配置文件
 ├── utils/                     # 工具函数
-│   └── ai.js                  # AI调用工具
+│   └── ai.js                  # AI调用工具（双模式架构）
 ├── .github/workflows/         # CI/CD配置
 │   └── ci.yml                 # GitHub Actions工作流
 ├── API.md                     # API接口文档
 ├── prompt_log.md              # Prompt日志
 ├── code_review.md             # AI代码审查报告
 ├── summary.md                 # 个人实训总结报告
+├── openapi.json               # OpenAPI规范文件
 └── pages.json                 # 路由配置
 ```
 
@@ -122,8 +124,14 @@ cd AI123
 ### 安全性说明
 
 项目采用双模式设计：
-- **开发模式**（`DEVELOPMENT_MODE = true`）：优先调用云函数，云函数不可用时 fallback 到直接调用阿里云 API，便于本地开发测试
+- **开发模式**（`DEVELOPMENT_MODE = true`）：优先调用云函数，云函数不可用时 fallback 到直接调用阿里云 API，便于本地开发测试；登录失败时自动进入离线模式
 - **生产模式**（`DEVELOPMENT_MODE = false`）：仅通过云函数调用 AI API，API Key 集中管理在后端配置文件中，前端代码无敏感信息暴露
+
+### 离线模式回退机制
+
+当云函数调用失败（如资源耗尽、网络异常等）时，系统会自动切换到离线模式：
+- **登录**：自动生成本地Token，允许用户进入应用
+- **AI功能**：自动回退到直接调用阿里云API，确保功能可用
 
 ## API文档
 
@@ -142,13 +150,8 @@ cd AI123
 项目使用 GitHub Actions 实现持续集成，配置文件位于 `.github/workflows/ci.yml`。
 
 ### CI 流程
-1. 代码检出
-2. Node.js 环境配置（18.x、20.x）
-3. 云函数语法检查
-4. JSON 配置文件验证
-5. 公共工具模块单元测试（Jest + 覆盖率）
-6. 文档完整性检查
-7. GitHub Pages 自动部署
+1. **build job**：代码检出 → Node.js 环境配置（20.x）→ 云函数语法检查 → JSON 配置文件验证 → 文档完整性检查
+2. **test job**：代码检出 → Node.js 环境配置（20.x）→ 公共工具模块单元测试（Jest + 覆盖率），测试失败不中断流程
 
 ## 单元测试
 
@@ -163,8 +166,8 @@ npm run test:coverage
 ```
 
 ### 测试覆盖
-- 密码哈希（hashPassword）
-- Token生成（generateToken）
+- 密码哈希（hashPassword、verifyPassword、generateSalt）
+- Token生成（generateToken、generateTokenWithExpiry、isTokenExpired）
 - 用户名校验（validateUsername）
 - 密码校验（validatePassword）
 - 邮箱校验（validateEmail）
@@ -175,6 +178,7 @@ npm run test:coverage
 - 错误捕获（captureError）
 - 配置加载（loadConfig）
 - 错误处理器（asyncErrorHandler）
+- 请求频率限制（checkRateLimit）
 
 ## 工程化
 
@@ -202,17 +206,39 @@ cp .env.example .env
 - `sendErrorAlert(errorInfo)`: 发送错误告警到 Webhook
 - `asyncErrorHandler(fn, moduleName)`: 云函数错误处理中间件
 
+## 安全机制
+
+### 认证安全
+- **Token过期机制**：所有Token默认24小时过期，过期后需重新登录
+- **Token校验**：所有云函数接口（register/login除外）均验证Token有效性和过期时间
+
+### 密码安全
+- **加盐哈希**：使用 SHA256 + 随机16字节盐值哈希密码
+- **密码验证**：登录时重新计算哈希进行比对
+
+### 输入安全
+- **类型校验**：所有输入参数进行类型检查
+- **长度限制**：设置合理的输入长度上限
+- **特殊字符过滤**：移除 `<>` 等潜在危险字符
+- **编程语言白名单**：仅允许8种支持的编程语言
+
+### 请求频率限制
+- 基于用户ID实现每分钟30次请求限制
+- 超出限制返回429错误
+
 ## 异常场景覆盖
 
 | 场景 | 处理方式 |
 |------|----------|
-| 网络断开 | 立即检测并提示用户 |
+| 网络断开 | 立即检测并提示用户，自动进入离线模式 |
 | 请求超时 | 自动重试（最多2次），指数退避 |
-| 服务器5xx错误 | 自动重试（最多2次） |
+| 服务器5xx错误 | 自动重试（最多2次），自动回退到直接API |
 | 参数无效 | 提前校验，友好提示 |
 | AI服务错误 | 解析错误信息，明确提示 |
 | 图片生成超时 | 最多轮询90秒，超时提示 |
 | 语音合成失败 | 提示用户使用Chrome浏览器 |
+| 云函数资源耗尽 | 自动回退到直接API调用 |
+| Token过期 | 返回401错误，提示重新登录 |
 
 ## 考核要求清单
 
@@ -239,8 +265,10 @@ cp .env.example .env
 
 ### 可选加分项
 - ✅ CI/CD（GitHub Actions 自动测试部署）
-- ✅ 单元测试（Jest，45个测试用例，覆盖率82%+）
+- ✅ 单元测试（Jest，70+个测试用例，覆盖率88%+）
 - ✅ 环境变量、日志、错误监控等工程化手段
+- ✅ 安全机制（Token过期、加盐哈希、输入验证、频率限制）
+- ✅ OpenAPI文档自动生成（openapi.json）
 
 ## 提交物清单
 
@@ -258,4 +286,4 @@ cp .env.example .env
 
 ## 作者
 
-wzyy886
+2023及计算机科学与技术专业王紫玉

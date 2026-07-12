@@ -1,0 +1,719 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "AI助手 API",
+    "description": "AI助手项目的后端云函数API接口文档",
+    "version": "1.0.0",
+    "contact": {
+      "name": "wzyy886",
+      "url": "https://github.com/wzyy886/AI123"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.next.bspapp.com/uniCloud/invoke",
+      "description": "uniCloud 云函数服务"
+    }
+  ],
+  "paths": {
+    "/register": {
+      "post": {
+        "summary": "用户注册",
+        "description": "创建新用户账户",
+        "requestBody": {
+          "description": "用户注册信息",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "用户名，长度3-20字符，仅允许字母、数字、下划线、中文",
+                    "minLength": 3,
+                    "maxLength": 20
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码，长度6-20字符",
+                    "minLength": 6,
+                    "maxLength": 20
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "邮箱地址"
+                  }
+                },
+                "required": ["username", "password", "email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "注册成功" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": { "type": "string" },
+                        "username": { "type": "string" },
+                        "email": { "type": "string" },
+                        "token": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 400 },
+                    "message": { "type": "string", "example": "用户名已存在" },
+                    "data": { "type": "null" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "用户登录",
+        "description": "用户登录获取Token",
+        "requestBody": {
+          "description": "用户登录信息",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "用户名"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "登录成功" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": { "type": "string" },
+                        "username": { "type": "string" },
+                        "email": { "type": "string" },
+                        "token": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "用户名或密码错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 400 },
+                    "message": { "type": "string", "example": "用户名或密码错误" },
+                    "data": { "type": "null" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "summary": "AI问答",
+        "description": "与AI助手进行对话",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "对话请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "用户提问内容，长度1-5000字符",
+                    "minLength": 1,
+                    "maxLength": 5000
+                  },
+                  "systemPrompt": {
+                    "type": "string",
+                    "description": "系统提示词，长度1-2000字符",
+                    "maxLength": 2000
+                  },
+                  "maxTokens": {
+                    "type": "integer",
+                    "description": "最大响应长度，默认8192",
+                    "minimum": 1,
+                    "maximum": 8192
+                  }
+                },
+                "required": ["token", "message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "问答成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 401 },
+                    "message": { "type": "string", "example": "未登录或登录已过期" },
+                    "data": { "type": "null" }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "请求过于频繁",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 429 },
+                    "message": { "type": "string", "example": "请求过于频繁，请稍后再试" },
+                    "data": { "type": "null" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analyze": {
+      "post": {
+        "summary": "文件分析",
+        "description": "分析上传的文件内容",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "文件分析请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "description": "文件名，长度1-200字符",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "fileContent": {
+                    "type": "string",
+                    "description": "文件内容（文本文件），长度1-10000字符",
+                    "maxLength": 10000
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "description": "文件URL（非文本文件），长度1-500字符",
+                    "maxLength": 500
+                  },
+                  "requirement": {
+                    "type": "string",
+                    "description": "用户分析需求，长度1-2000字符",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": ["token", "fileName", "requirement"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "分析成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "analysis": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          }
+        }
+      }
+    },
+    "/image": {
+      "post": {
+        "summary": "图片编辑",
+        "description": "AI图片编辑和生成",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "图片编辑请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "imageUrl": {
+                    "type": "string",
+                    "description": "图片URL，长度1-500字符",
+                    "maxLength": 500
+                  },
+                  "imageContent": {
+                    "type": "string",
+                    "description": "图片内容（base64）"
+                  },
+                  "requirement": {
+                    "type": "string",
+                    "description": "用户编辑需求，长度1-2000字符",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "图片风格（原图、美颜、艺术、胶片、黑白、梦幻等）",
+                    "enum": ["原图", "美颜", "艺术", "胶片", "黑白", "梦幻", "复古", "清新"]
+                  }
+                },
+                "required": ["token", "requirement"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "编辑成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "suggestion": { "type": "string" },
+                        "generatedImageUrl": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          }
+        }
+      }
+    },
+    "/video": {
+      "post": {
+        "summary": "视频通话",
+        "description": "AI视频通话控制",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "视频通话请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "操作类型",
+                    "enum": ["start", "end"]
+                  }
+                },
+                "required": ["token", "action"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": { "type": "string" },
+                        "callId": { "type": "string" },
+                        "message": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          }
+        }
+      }
+    },
+    "/generate": {
+      "post": {
+        "summary": "代码生成",
+        "description": "根据描述生成代码",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "代码生成请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "代码生成需求，长度1-2000字符",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "目标编程语言",
+                    "enum": ["JavaScript", "TypeScript", "Python", "Java", "Go", "Rust", "C++", "C#"]
+                  }
+                },
+                "required": ["token", "description"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "生成成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          }
+        }
+      }
+    },
+    "/review": {
+      "post": {
+        "summary": "代码审查",
+        "description": "审查代码质量",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "代码审查请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "待审查代码，长度1-10000字符",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "代码编程语言",
+                    "enum": ["JavaScript", "TypeScript", "Python", "Java", "Go", "Rust", "C++", "C#"]
+                  }
+                },
+                "required": ["token", "code"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "审查成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          }
+        }
+      }
+    },
+    "/explain": {
+      "post": {
+        "summary": "代码解释",
+        "description": "解释代码功能",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "description": "代码解释请求",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "用户登录Token"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "待解释代码，长度1-10000字符",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "代码编程语言",
+                    "enum": ["JavaScript", "TypeScript", "Python", "Java", "Go", "Rust", "C++", "C#"]
+                  }
+                },
+                "required": ["token", "code"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "解释成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或登录已过期"
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "429": {
+            "description": "请求过于频繁"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "用户登录后获取的Token"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "错误码",
+            "example": 400
+          },
+          "message": {
+            "type": "string",
+            "description": "错误信息",
+            "example": "请求参数错误"
+          },
+          "data": {
+            "type": "null"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "状态信息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回数据"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
+}

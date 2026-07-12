@@ -2,5 +2,11 @@
   "name": "chat",
   "version": "1.0.0",
   "description": "AI代码问答云函数",
-  "main": "index.js"
+  "main": "index.js",
+  "serverless": {
+    "custom": {
+      "memorySize": 512,
+      "timeout": 300
+    }
+  }
 }

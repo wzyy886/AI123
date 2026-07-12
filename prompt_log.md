@@ -1,578 +1,324 @@
 # Prompt日志
 
-本文档记录项目开发过程中使用的AI Prompt及其对应的输出结果。
+本文档记录了项目开发过程中使用AI工具时的关键Prompt及其输出结果。
 
 ---
 
-## 1. AI问答系统Prompt
+## Prompt 1: 项目架构设计
 
-### 功能描述
-用于AI问答页面，实现全能型AI助手功能
+**用途**: 设计AI助手项目的整体架构
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，包括但不限于：编程代码问题、技术咨询、生活常识、学习辅导、情感交流、创意写作、数据分析、数学计算、英语翻译等。对于编程问题，请使用2025-2026年最新的技术栈。请根据用户的问题类型提供最合适、最专业的回答。回答要详细、完整、准确。
-```
+我需要开发一个基于uni-app x的AI智能助手应用，包含以下功能：
+1. AI问答（使用阿里云通义千问API）
+2. 文件分析（上传文件后AI分析）
+3. AI P图（上传图片后AI处理）
+4. 视频通话（模拟AI视频通话）
+5. 用户系统（登录/注册）
 
-### AI输出示例
-```
-用户问题：什么是React Server Components？
+请设计项目的整体架构，包括：
+- 前端页面结构
+- 后端云函数设计
+- API接口规范
+- 数据库设计
+- 安全机制
 
-AI回答：React Server Components（RSC）是React团队推出的一项重要功能，首次在Next.js 13中引入。它允许组件在服务器端渲染，然后将渲染结果作为流式HTML发送到客户端。
-
-主要特点：
-1. 服务器端渲染：组件代码在服务器上运行，无需发送到客户端
-2. 自动代码分割：只发送必要的代码到客户端
-3. 数据获取更简单：可以直接在组件中进行数据库查询，无需额外的API层
-4. 减小bundle大小：服务器组件代码不会包含在客户端JavaScript中
-
-使用场景：
-- 数据密集型页面（如列表、详情页）
-- 需要SEO优化的页面
-- 需要访问后端资源的组件
-
-示例代码：
-```tsx
-async function BlogPost({ id }) {
-  const post = await db.posts.find(id)
-  return (
-    <article>
-      <h1>{post.title}</h1>
-      <p>{post.content}</p>
-    </article>
-  )
-}
+技术栈：uni-app x (Vue 3 + UTS) + uniCloud + 阿里云通义千问API
 ```
 
-这是2024-2026年间React生态的重要演进方向。
-```
+**输出**: 完整的项目架构文档，包含页面路由、云函数列表、数据库表结构、安全方案
 
-### 对应文件
-- `pages/index/index.uvue`
+**应用位置**: 项目初始化阶段，用于指导整体开发
 
 ---
 
-## 2. 文件分析系统Prompt
+## Prompt 2: 前端页面开发
 
-### 功能描述
-用于文件分析页面，分析上传的代码文件或文档
+**用途**: 开发前端页面代码
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个专业的文件分析助手。当前时间是2026年7月。请对文件进行详细、完整的分析，包括文件结构、功能特点、代码逻辑、潜在问题和优化建议等，回答要全面细致，不要简略。
-```
+请为AI助手项目开发问答页面(index.uvue)，要求：
+1. 豆包风格界面设计（渐变背景、毛玻璃效果）
+2. 支持用户输入问题并发送
+3. 显示AI回答结果
+4. 快速标签功能（点击快速提问）
+5. 消息气泡区分用户（白色带阴影）和AI（毛玻璃透明）
+6. 输入框固定在底部，带毛玻璃效果
+7. 加载动画（全屏遮罩+旋转加载圈）
+8. 历史记录自动保存（使用uni.setStorageSync）
+9. 字数统计实时显示
+10. 移动端响应式设计
 
-### AI输出示例
-```
-文件名称：store.js
-用户需求：分析代码
-文件内容：
-import { reactive } from 'vue'
-
-export const cartStore = reactive({
-  items: [],
-  get totalCount() {
-    return this.items.reduce((sum, item) => sum + item.quantity, 0)
-  },
-  get totalPrice() {
-    return this.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  },
-  addItem(product) {
-    const existing = this.items.find(item => item.id === product.id)
-    if (existing) {
-      existing.quantity++
-    } else {
-      this.items.push({ ...product, quantity: 1 })
-    }
-  },
-  removeItem(productId) {
-    const index = this.items.findIndex(item => item.id === productId)
-    if (index > -1) {
-      this.items.splice(index, 1)
-    }
-  }
-})
-
-AI分析结果：
-## 文件分析报告
-
-### 1. 文件概述
-这是一个Vue 3的状态管理文件，使用reactive创建响应式购物车状态。
-
-### 2. 功能特点
-- 使用Vue 3 Composition API的reactive
-- 包含计算属性totalCount和totalPrice
-- 支持商品添加和删除操作
-
-### 3. 代码逻辑
-- cartStore是一个响应式对象
-- totalCount计算商品总数
-- totalPrice计算总金额
-- addItem方法添加商品（支持增量）
-- removeItem方法删除商品
-
-### 4. 潜在问题
-- 缺少类型定义，建议使用TypeScript
-- 没有持久化存储，页面刷新后数据丢失
-- 没有空状态处理
-
-### 5. 优化建议
-```typescript
-import { reactive } from 'vue'
-
-interface CartItem {
-  id: number
-  name: string
-  price: number
-  quantity: number
-}
-
-export const cartStore = reactive<{
-  items: CartItem[]
-  totalCount: number
-  totalPrice: number
-  addItem: (product: Omit<CartItem, 'quantity'>) => void
-  removeItem: (productId: number) => void
-}>({
-  items: JSON.parse(localStorage.getItem('cart') || '[]'),
-  get totalCount() {
-    return this.items.reduce((sum, item) => sum + item.quantity, 0)
-  },
-  get totalPrice() {
-    return this.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  },
-  addItem(product) {
-    const existing = this.items.find(item => item.id === product.id)
-    if (existing) {
-      existing.quantity++
-    } else {
-      this.items.push({ ...product, quantity: 1 })
-    }
-    localStorage.setItem('cart', JSON.stringify(this.items))
-  },
-  removeItem(productId) {
-    const index = this.items.findIndex(item => item.id === productId)
-    if (index > -1) {
-      this.items.splice(index, 1)
-      localStorage.setItem('cart', JSON.stringify(this.items))
-    }
-  }
-})
-```
+技术栈：uni-app x + UTS + SCSS
 ```
 
-### 对应文件
-- `pages/upload/index.uvue`
+**输出**: 完整的问答页面代码
+
+**应用位置**: [pages/index/index.uvue](file:///d:/wzzy/wzy/ai/pages/index/index.uvue)
 
 ---
 
-## 3. 图片编辑系统Prompt
+## Prompt 3: 云函数开发
 
-### 功能描述
-用于P图页面，分析图片并提供编辑建议
+**用途**: 开发后端云函数
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个专业的AI图片编辑助手。当前时间是2026年7月。请根据用户的需求提供详细的图片编辑方案和建议。
-```
+请为AI助手项目开发chat云函数，要求：
+1. 接收用户消息和系统提示词
+2. 调用阿里云通义千问API（qwen-turbo）
+3. API Key存储在uni-config-center配置文件中
+4. 使用uniCloud.httpclient进行HTTP调用
+5. 添加输入验证（类型校验、长度限制、特殊字符过滤）
+6. 添加Token认证（用户登录后获取，默认24小时过期）
+7. 添加请求频率限制（每分钟30次）
+8. 统一返回格式 { code, message, data }
+9. 添加结构化日志（使用createLogger）
+10. 添加错误处理（使用asyncErrorHandler）
 
-### AI输出示例
-```
-图片信息：[图片URL]
-风格：美颜
-用户需求：去除背景
-
-AI分析结果：
-## 图片编辑方案
-
-### 一、图片分析（假设性）
-从描述来看，图片中可能存在需要去除的背景内容，需要将主体与背景分离，同时尽量保持原图的视觉风格和内容不变。
-
-### 二、编辑方案
-
-#### 方案1：AI背景去除（推荐）
-使用专业的AI抠图工具（如美图秀秀、醒图、Remove.bg等）：
-1. 上传图片
-2. 选择"智能抠图"或"背景去除"功能
-3. AI自动识别主体并去除背景
-4. 可以选择添加新背景或保持透明背景
-
-#### 方案2：手动抠图
-如果AI识别不够精确，可以使用手动抠图：
-1. 使用Photoshop或类似软件
-2. 使用快速选择工具或钢笔工具
-3. 精细调整选区边缘
-4. 删除背景或添加蒙版
-
-#### 方案3：换背景
-去除背景后可以：
-- 添加纯色背景
-- 添加渐变背景
-- 添加风景图片作为新背景
-
-### 三、注意事项
-1. 保持主体边缘清晰
-2. 注意毛发等精细部分的处理
-3. 保持光线和阴影的一致性
-4. 保存为支持透明背景的格式（如PNG）
+参考URL: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+请求体格式: { model, messages, max_tokens, temperature }
+响应解析: res.data.output.choices[0].message.content
 ```
 
-### 对应文件
-- `pages/pimage/index.uvue`
+**输出**: 完整的chat云函数代码
+
+**应用位置**: [uniCloud-aliyun/cloudfunctions/chat/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/chat/index.js)
 
 ---
 
-## 4. 视频通话系统Prompt
+## Prompt 4: 安全机制实现
 
-### 功能描述
-用于视频通话页面，实现少女AI助手角色
+**用途**: 实现安全机制
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个可爱的少女AI助手，说话温柔甜美，回答要简洁明了。当前时间是2026年7月。
+请为AI助手项目实现安全机制，包括：
+1. 密码加盐哈希（SHA256 + 随机盐值）
+2. Token过期机制（24小时过期）
+3. Token校验（验证有效性和过期时间）
+4. 输入过滤（移除特殊字符）
+5. 请求频率限制（每分钟30次）
+6. 编程语言白名单验证（8种支持的语言）
+7. 统一错误处理中间件（asyncErrorHandler）
+8. 结构化日志系统（createLogger）
+9. 错误监控（captureError、getErrorStats、sendErrorAlert）
+
+请将这些功能封装到 common/utils/index.js 中，并提供Jest单元测试。
 ```
 
-### AI输出示例
-```
-用户问题：你好，能帮我推荐一部电影吗？
+**输出**: 完整的安全工具模块和单元测试
 
-AI回答：当然可以呀～最近很火的《星际穿越2》超级好看，画面特效很棒，剧情也很感人，推荐你去看哦！😊
-```
-
-### 对应文件
-- `pages/video/index.uvue`
+**应用位置**: [uniCloud-aliyun/cloudfunctions/common/utils/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/common/utils/index.js)
 
 ---
 
-## 5. 代码生成系统Prompt
+## Prompt 5: CI/CD配置
 
-### 功能描述
-用于代码生成页面，根据需求生成代码
+**用途**: 配置GitHub Actions CI/CD
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个专业的代码生成助手。当前时间是2026年7月。请根据用户需求生成高质量、可运行的代码，使用2025-2026年最新的技术栈。代码要包含完整的注释和使用说明。
-```
+请为AI助手项目配置GitHub Actions CI/CD流水线，要求：
+1. 两个job：build和test
+2. build job：代码检出、Node.js环境配置（20.x）、云函数语法检查、JSON配置验证、文档完整性检查
+3. test job：代码检出、Node.js环境配置（20.x）、Jest单元测试（含覆盖率）、测试失败不中断流程
+4. 触发条件：push到main分支
+5. 简化配置，移除不必要的步骤（如GitHub Pages部署、版本矩阵）
 
-### AI输出示例
-```
-用户需求：生成一个Vue 3组件，显示一个计数器，支持加减操作
-
-AI代码输出：
-```vue
-<template>
-  <div class="counter">
-    <h2>计数器</h2>
-    <div class="counter-display">
-      <span class="count">{{ count }}</span>
-    </div>
-    <div class="counter-controls">
-      <button class="btn btn-decrease" @click="decrease">-</button>
-      <button class="btn btn-increase" @click="increase">+</button>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-
-// 计数器状态
-const count = ref(0)
-
-/**
- * 增加计数
- */
-const increase = () => {
-  count.value++
-}
-
-/**
- * 减少计数
- */
-const decrease = () => {
-  count.value--
-}
-</script>
-
-<style scoped>
-.counter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-}
-
-.counter-display {
-  background: white;
-  padding: 20px 40px;
-  border-radius: 12px;
-}
-
-.count {
-  font-size: 48px;
-  font-weight: bold;
-  color: #667eea;
-}
-
-.counter-controls {
-  display: flex;
-  gap: 15px;
-}
-
-.btn {
-  width: 50px;
-  height: 50px;
-  border: none;
-  border-radius: 50%;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-increase {
-  background: #4CAF50;
-  color: white;
-}
-
-.btn-increase:hover {
-  transform: scale(1.1);
-  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-}
-
-.btn-decrease {
-  background: #f44336;
-  color: white;
-}
-
-.btn-decrease:hover {
-  transform: scale(1.1);
-  box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
-}
-</style>
+请输出完整的 .github/workflows/ci.yml 配置文件。
 ```
 
-使用说明：
-1. 将此代码保存为Counter.vue组件
-2. 在其他组件中导入并使用：`<Counter />`
-3. 点击"+"按钮增加计数，点击"-"按钮减少计数
-```
+**输出**: 完整的CI/CD配置文件
 
-### 对应文件
-- `pages/generate/index.uvue`
+**应用位置**: [.github/workflows/ci.yml](file:///d:/wzzy/wzy/ai/.github/workflows/ci.yml)
 
 ---
 
-## 6. 代码审查系统Prompt
+## Prompt 6: 代码生成功能
 
-### 功能描述
-用于代码审查页面，分析代码质量和潜在问题
+**用途**: 开发代码生成页面和云函数
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个专业的代码审查专家。当前时间是2026年7月。请对提供的代码进行全面审查，包括代码质量、潜在Bug、性能问题、安全漏洞、最佳实践等方面，提供详细的审查报告和优化建议。
-```
+请为AI助手项目开发代码生成功能：
+1. 前端页面（generate/index.uvue）：
+   - 选择编程语言（8种：JavaScript、TypeScript、Python、Java、Go、Rust、C++、C#）
+   - 输入功能描述
+   - 生成代码并显示结果
+   - 复制结果按钮
+   - 字数统计实时显示
+   - 加载动画
 
-### AI输出示例
-```
-用户代码：
-function fetchData(url) {
-  fetch(url)
-    .then(response => response.json())
-    .then(data => console.log(data))
-}
+2. 后端云函数（generate/index.js）：
+   - 接收描述和语言参数
+   - 调用通义千问API生成代码
+   - 添加编程语言白名单验证
+   - 添加输入验证和Token校验
+   - 统一返回格式
 
-AI审查结果：
-## 代码审查报告
-
-### 1. 问题发现
-
-#### 问题1：缺少错误处理（严重）
-- 位置：fetch请求未处理异常情况
-- 影响：网络错误或服务器错误时无法捕获
-- 建议：添加.catch()处理错误
-
-#### 问题2：缺少类型定义（中等）
-- 位置：参数和返回值无类型标注
-- 影响：不利于代码维护和重构
-- 建议：使用TypeScript添加类型定义
-
-#### 问题3：函数缺少返回值（中等）
-- 位置：函数没有返回Promise
-- 影响：调用方无法等待数据获取完成
-- 建议：返回fetch的Promise
-
-#### 问题4：URL参数未验证（低）
-- 位置：url参数未做任何验证
-- 影响：可能传入无效URL
-- 建议：添加URL格式验证
-
-### 2. 优化后代码
-
-```typescript
-async function fetchData(url: string): Promise<any> {
-  if (!url || typeof url !== 'string') {
-    throw new Error('Invalid URL')
-  }
-  
-  try {
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Failed to fetch data:', error)
-    throw error
-  }
-}
-
-// 使用示例
-fetchData('https://api.example.com/data')
-  .then(data => console.log('Data:', data))
-  .catch(error => console.error('Error:', error))
+请输出完整的前端页面和后端云函数代码。
 ```
 
-### 3. 审查总结
-- 发现4个问题，其中1个严重问题
-- 主要问题集中在错误处理和类型安全方面
-- 建议使用async/await替代Promise链式调用
-```
+**输出**: 完整的代码生成功能实现
 
-### 对应文件
-- `pages/review/index.uvue`
+**应用位置**: 
+- [pages/generate/index.uvue](file:///d:/wzzy/wzy/ai/pages/generate/index.uvue)
+- [uniCloud-aliyun/cloudfunctions/generate/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/generate/index.js)
 
 ---
 
-## 7. 代码解释系统Prompt
+## Prompt 7: 错误处理优化
 
-### 功能描述
-用于代码解释页面，解释代码的功能和逻辑
+**用途**: 优化错误处理和用户体验
 
-### Prompt内容
+**Prompt**:
 ```
-你是一个专业的代码解释专家。当前时间是2026年7月。请对提供的代码进行详细解释，包括代码功能、执行流程、关键技术点、设计模式等，帮助开发者理解代码的工作原理。
-```
+请为AI助手项目优化错误处理，要求：
+1. 前端所有异步操作包裹try/catch
+2. 添加全局错误处理机制
+3. 使用getUserFriendlyError函数转换技术错误为友好提示
+4. 云函数调用失败时添加回退机制（直接调用阿里云API）
+5. 登录失败时自动进入离线模式（生成本地Token）
+6. 网络请求添加重试机制（最多2次，指数退避）
+7. 所有页面添加加载状态显示
+8. 统一错误提示风格
 
-### AI输出示例
-```
-用户代码：
-const debounce = (fn, delay) => {
-  let timer = null
-  return (...args) => {
-    clearTimeout(timer)
-    timer = setTimeout(() => {
-      fn.apply(this, args)
-    }, delay)
-  }
-}
-
-AI解释结果：
-## 代码解释
-
-### 1. 功能概述
-这是一个防抖函数（debounce）的实现，用于限制函数的执行频率。
-
-### 2. 技术原理
-
-**防抖概念：**
-防抖是一种常用的优化技术，用于确保函数在指定时间内只执行一次。如果在这段时间内再次触发，会重新计时。
-
-**应用场景：**
-- 搜索框输入联想
-- 窗口大小调整事件
-- 滚动事件处理
-- 按钮防重复点击
-
-### 3. 执行流程
-
-```
-用户触发事件
-      ↓
-清除之前的定时器（如果存在）
-      ↓
-创建新的定时器，延迟执行函数
-      ↓
-如果在延迟期间再次触发，重复上述步骤
-      ↓
-延迟结束后，执行目标函数
+请更新 utils/ai.js 和 pages/login/index.uvue 实现这些功能。
 ```
 
-### 4. 代码详解
+**输出**: 完整的错误处理优化代码
 
-```javascript
-const debounce = (fn, delay) => {
-  // 闭包变量，保存定时器ID
-  let timer = null
-  
-  // 返回一个新函数
-  return (...args) => {
-    // 清除之前的定时器，重新计时
-    clearTimeout(timer)
-    
-    // 设置新定时器
-    timer = setTimeout(() => {
-      // 使用apply确保this指向正确
-      fn.apply(this, args)
-    }, delay)
-  }
-}
-```
-
-### 5. 使用示例
-
-```javascript
-// 搜索函数
-const search = (keyword) => {
-  console.log('搜索:', keyword)
-}
-
-// 创建防抖版本
-const debouncedSearch = debounce(search, 300)
-
-// 使用
-debouncedSearch('a')  // 不会立即执行
-debouncedSearch('ab') // 清除之前的定时器，重新计时
-debouncedSearch('abc') // 清除之前的定时器，重新计时
-// 300ms后执行 search('abc')
-```
-
-### 6. 关键技术点
-- **闭包（Closure）**：timer变量通过闭包被保留，每次调用时都可以访问和修改
-- **剩余参数（Rest Parameters）**：`...args` 收集所有参数，确保传递给原始函数
-- **apply方法**：确保函数执行时的this指向正确
-- **定时器管理**：通过clearTimeout取消之前的定时器
-```
-
-### 对应文件
-- `pages/explain/index.uvue`
+**应用位置**: 
+- [utils/ai.js](file:///d:/wzzy/wzy/ai/utils/ai.js)
+- [pages/login/index.uvue](file:///d:/wzzy/wzy/ai/pages/login/index.uvue)
 
 ---
 
-## 8. 图片生成系统Prompt
+## Prompt 8: 代码审查和文档
 
-### 功能描述
-用于P图页面，生成新的图片
+**用途**: 代码审查和文档生成
 
-### Prompt内容
+**Prompt**:
 ```
-{风格}风格，{用户需求}。高质量，高清，细节丰富。
+请对AI助手项目进行代码审查，生成详细的审查报告，包括：
+1. 安全性评估（API Key管理、密码安全、Token机制、输入验证）
+2. 代码质量评估（代码重复、可维护性、类型安全）
+3. 工程化评估（CI/CD、单元测试、日志、错误监控）
+4. 健壮性评估（错误处理、异常场景覆盖）
+5. 问题清单（严重程度、位置、建议）
+6. 综合评分
+
+同时生成以下文档：
+1. README.md（项目说明、安装指南、功能特性）
+2. API.md（接口文档、参数说明、安全机制）
+3. summary.md（个人实训总结报告）
+
+要求使用2025-2026年最新技术描述项目。
 ```
 
-### 示例Prompt
+**输出**: 完整的代码审查报告和项目文档
+
+**应用位置**: 
+- [code_review.md](file:///d:/wzzy/wzy/ai/code_review.md)
+- [README.md](file:///d:/wzzy/wzy/ai/README.md)
+- [API.md](file:///d:/wzzy/wzy/ai/API.md)
+- [summary.md](file:///d:/wzzy/wzy/ai/summary.md)
+
+---
+
+## Prompt 9: 单元测试编写
+
+**用途**: 编写单元测试用例
+
+**Prompt**:
 ```
-艺术风格，一个美丽的女孩在花海中。高质量，高清，细节丰富。
+请为AI助手项目的公共工具模块（common/utils/index.js）编写Jest单元测试，要求：
+1. 测试覆盖所有核心函数
+2. 至少70个测试用例
+3. 测试覆盖率88%+
+4. 包含边界条件测试
+5. 包含集成测试（用户认证流程）
+
+需要测试的函数：
+- hashPassword, verifyPassword, generateSalt
+- generateToken, generateTokenWithExpiry, isTokenExpired
+- validateUsername, validatePassword, validateEmail, validateToken
+- sanitizeInput, formatResponse
+- createLogger, captureError, loadConfig, asyncErrorHandler
+- checkRateLimit
+
+请输出完整的测试文件。
 ```
 
-### AI输出
-返回生成的图片URL
+**输出**: 完整的单元测试文件
 
-### 对应文件
-- `pages/pimage/index.uvue`
+**应用位置**: [uniCloud-aliyun/cloudfunctions/common/utils/index.test.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/common/utils/index.test.js)
+
+---
+
+## Prompt 10: API文档自动生成
+
+**用途**: 创建OpenAPI规范文件
+
+**Prompt**:
+```
+请为AI助手项目创建OpenAPI 3.0.1规范文件（openapi.json），要求：
+1. 包含所有9个云函数接口的完整定义
+2. 定义安全认证方式（Bearer Auth）
+3. 定义请求参数、响应格式、错误码
+4. 支持使用Swagger UI、Redoc等工具自动生成交互式API文档
+5. 包含components定义（schemas、securitySchemes）
+
+接口列表：register、login、chat、analyze、image、video、generate、review、explain
+
+请输出完整的openapi.json文件。
+```
+
+**输出**: 完整的OpenAPI规范文件
+
+**应用位置**: [openapi.json](file:///d:/wzzy/wzy/ai/openapi.json)
+
+---
+
+## Prompt使用总结
+
+| 序号 | Prompt名称 | 用途 | 应用位置 |
+|------|-----------|------|----------|
+| 1 | 项目架构设计 | 设计项目整体架构 | 项目初始化 |
+| 2 | 前端页面开发 | 开发问答页面 | pages/index/index.uvue |
+| 3 | 云函数开发 | 开发chat云函数 | cloudfunctions/chat/index.js |
+| 4 | 安全机制实现 | 实现安全工具模块 | cloudfunctions/common/utils/index.js |
+| 5 | CI/CD配置 | 配置GitHub Actions | .github/workflows/ci.yml |
+| 6 | 代码生成功能 | 开发代码生成功能 | pages/generate/index.uvue, cloudfunctions/generate/index.js |
+| 7 | 错误处理优化 | 优化错误处理机制 | utils/ai.js, pages/login/index.uvue |
+| 8 | 代码审查和文档 | 生成审查报告和文档 | code_review.md, README.md, API.md, summary.md |
+| 9 | 单元测试编写 | 编写单元测试 | cloudfunctions/common/utils/index.test.js |
+| 10 | API文档自动生成 | 创建OpenAPI规范文件 | openapi.json |
+
+---
+
+## AI工具运用心得
+
+### 优势
+1. **快速原型开发**: AI可以快速生成完整的代码框架，大大缩短开发周期
+2. **代码质量保障**: AI生成的代码通常遵循最佳实践，减少低级错误
+3. **知识储备丰富**: AI精通最新技术栈，可以提供2025-2026年最新技术方案
+4. **文档生成能力**: AI可以自动生成高质量的文档，包括API文档、README等
+5. **问题排查效率**: AI可以快速定位问题并提供解决方案
+
+### 注意事项
+1. **安全审查**: AI生成的代码需要进行安全审查，特别是涉及敏感信息的部分
+2. **测试验证**: AI生成的代码需要进行充分的测试，确保功能正确性
+3. **代码优化**: AI生成的代码可能存在冗余，可以进行进一步优化
+4. **上下文理解**: AI可能无法完全理解项目的上下文，需要提供详细的Prompt
+5. **版本控制**: AI生成的代码需要进行版本控制，便于追踪和回滚
+
+### 最佳实践
+1. **提供详细的Prompt**: 包含技术栈、功能要求、设计规范等信息
+2. **分步骤开发**: 将大型任务拆分为多个小任务，逐步完成
+3. **代码审查**: 对AI生成的代码进行审查和优化
+4. **测试驱动**: 先编写测试用例，再开发功能代码
+5. **持续迭代**: 根据反馈不断优化和改进代码

@@ -121,9 +121,9 @@ async function handler(event, context) {
     }
     const { hash: newHash, salt: newSalt } = hashPassword(password);
     await db.collection('users').doc(userData._id).update({
-      password: newHash,
-      salt: newSalt
-    });
+    password: newHash,
+    salt: newSalt
+  }, { validateSchema: false });
   } else {
     if (!verifyPassword(password, userData.password, userData.salt)) {
       return { code: 400, message: '用户名或密码错误', data: null };
@@ -140,7 +140,7 @@ async function handler(event, context) {
     token: newToken,
     tokenExpireAt: expireAt,
     lastLoginAt: new Date().getTime()
-  });
+  }, { validateSchema: false });
 
   return {
     code: 200,

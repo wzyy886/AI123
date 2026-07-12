@@ -44,7 +44,7 @@ async function handler(event, context) {
       userId: userData._id,
       status: 'calling',
       startedAt: new Date().getTime()
-    });
+    }, { validateSchema: false });
 
     return {
       code: 200,

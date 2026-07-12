@@ -100,7 +100,7 @@ async function handler(event, context) {
     tokenExpireAt: expireAt,
     createdAt: new Date().getTime(),
     status: 1
-  });
+  }, { validateSchema: false });
 
   return {
     code: 200,

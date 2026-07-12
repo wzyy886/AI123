@@ -90,7 +90,7 @@ async function handler(event, context) {
         requirement: sanitizedRequirement,
         suggestion: suggestion,
         createdAt: new Date().getTime()
-      });
+      }, { validateSchema: false });
       
       return { code: 200, message: 'success', data: {
         suggestion: suggestion,

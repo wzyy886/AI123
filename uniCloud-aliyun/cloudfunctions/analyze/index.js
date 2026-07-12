@@ -108,7 +108,7 @@ async function handler(event, context) {
         requirement: sanitizedRequirement,
         analysis: analysis,
         createdAt: new Date().getTime()
-      });
+      }, { validateSchema: false });
       
       return { code: 200, message: 'success', data: { analysis: analysis } };
     } else {

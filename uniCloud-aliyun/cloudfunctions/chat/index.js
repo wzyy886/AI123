@@ -85,7 +85,7 @@ async function handler(event, context) {
           message: sanitizedMessage,
           response: response,
           createdAt: new Date().getTime()
-        });
+        }, { validateSchema: false });
       } catch (dbError) {
         console.error('Failed to save chat history:', dbError);
       }

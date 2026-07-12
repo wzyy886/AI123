@@ -118,7 +118,7 @@
 
 <script setup lang="uts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { callAI, getUserFriendlyError } from '@/utils/ai.js'
+import { callAI, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 
 type SpeechRecognitionType = {
   continuous: boolean
@@ -154,6 +154,7 @@ const loading = ref(false)
 const isRecording = ref(false)
 const aiResponse = ref('')
 const chatInput = ref('')
+const callStartTime = ref(0)
 
 let recognition: SpeechRecognitionType | null = null
 let isProcessing = false
@@ -196,26 +197,13 @@ function togglePreviewMute() {
 async function startCall() {
   if (loading.value) return
   
-  const token = uni.getStorageSync('token')
-  if (!token) {
-    uni.showModal({
-      title: '提示',
-      content: '请先登录后再使用视频通话功能',
-      confirmText: '去登录',
-      success: (res) => {
-        if (res.confirm) {
-          uni.navigateTo({ url: '/pages/login/index' })
-        }
-      }
-    })
-    return
-  }
-  
   loading.value = true
   
   try {
     isCalling.value = true
+    callStartTime.value = Date.now()
     callStatus.value = '正在连接...'
+    
     await delay(2000)
     callStatus.value = 'AI正在准备...'
     await delay(2000)
@@ -223,6 +211,8 @@ async function startCall() {
     
     initSpeechRecognition()
     speak('你好，我是AI助手，很高兴与你通话。请问有什么可以帮助你的吗？')
+    
+    saveRecord('video', { status: 'calling', startedAt: callStartTime.value })
     
     uni.showToast({ title: '通话已连接', icon: 'success' })
   } catch (error) {
@@ -365,6 +355,7 @@ async function sendChatMessage() {
     uni.hideLoading()
     
     aiResponse.value = response
+    saveRecord('chat', { message: message, response: response })
     speak(response)
   } catch (error) {
     uni.hideLoading()
@@ -419,18 +410,9 @@ async function endCall() {
           }
         } catch (e) {}
         
-        const token = uni.getStorageSync('token')
-        try {
-          await uniCloud.callFunction({
-            name: 'video',
-            data: {
-              action: 'end',
-              token: token
-            }
-          })
-        } catch (error) {
-          console.log('结束通话失败')
-        }
+        const endedAt = Date.now()
+        const duration = callStartTime.value ? Math.floor((endedAt - callStartTime.value) / 1000) : 0
+        saveRecord('video', { status: 'ended', startedAt: callStartTime.value, endedAt: endedAt, duration: duration })
         
         isCalling.value = false
         callStatus.value = '正在连接...'

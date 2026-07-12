@@ -53,7 +53,7 @@
 
 <script setup lang="uts">
 	import { ref, nextTick } from 'vue'
-	import { callAI, getUserFriendlyError } from '@/utils/ai.js'
+	import { callAI, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 	
 	type Msg = {
 		role: string
@@ -77,33 +77,8 @@
 		send()
 	}
 	
-	const saveHistory = (type: string, content: string) => {
-			const history = uni.getStorageSync('chat_history') || []
-			history.push({
-				type: type,
-				content: content,
-				time: formatTime()
-			})
-			uni.setStorageSync('chat_history', history)
-		}
-		
-		const send = async () => {
+	const send = async () => {
 			if (!question.value.trim() || loading.value) return
-			
-			const token = uni.getStorageSync('token')
-			if (!token) {
-				uni.showModal({
-					title: '提示',
-					content: '请先登录后再使用AI问答功能',
-					confirmText: '去登录',
-					success: (res) => {
-						if (res.confirm) {
-							uni.navigateTo({ url: '/pages/login/index' })
-						}
-					}
-				})
-				return
-			}
 			
 			const userContent = question.value
 			messages.value.push({ role: 'user', content: userContent, time: formatTime() })
@@ -114,7 +89,7 @@
 				const systemPrompt = '你是一个全能型AI助手，精通2026年最新技术。当前时间是2026年7月。你可以回答任何类型的问题，回答要详细、完整、准确。'
 				const response = await callAI(userContent, systemPrompt)
 				messages.value.push({ role: 'ai', content: response, time: formatTime() })
-				saveHistory('chat', userContent)
+				saveRecord('chat', { message: userContent, response: response })
 			} catch (e) {
 				messages.value.push({ role: 'ai', content: getUserFriendlyError(e), time: formatTime() })
 			} finally {

@@ -1,6 +1,12 @@
 {
   "bsonType": "object",
-  "required": ["userId", "username", "fileName", "fileType", "content", "analysis", "createdAt"],
+  "required": ["userId", "username", "fileName", "analysis", "createdAt"],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": true
+  },
   "properties": {
     "_id": {
       "bsonType": "string",

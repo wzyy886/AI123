@@ -74,7 +74,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
-import { callAI, formatSize, getUserFriendlyError } from '@/utils/ai.js'
+import { callAI, formatSize, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 
 const uploadedFileName = ref('')
 const uploadedFilePath = ref('')
@@ -108,21 +108,6 @@ function removeFile() {
 async function submit() {
   if (!uploadedFileName.value || !requirement.value || loading.value) return
   
-  const token = uni.getStorageSync('token')
-  if (!token) {
-    uni.showModal({
-      title: '提示',
-      content: '请先登录后再使用文件分析功能',
-      confirmText: '去登录',
-      success: (res) => {
-        if (res.confirm) {
-          uni.navigateTo({ url: '/pages/login/index' })
-        }
-      }
-    })
-    return
-  }
-  
   loading.value = true
   
   try {
@@ -131,30 +116,14 @@ async function submit() {
     const isTextFile = textExtensions.includes(ext)
     
     let fileContent = ''
-    let fileUrl = ''
     
     if (isTextFile) {
       fileContent = await readFileContent(uploadedFilePath.value)
-    } else {
-      fileUrl = await uploadFileToCloud(uploadedFilePath.value)
     }
     
     let prompt = ''
     if (fileContent) {
       prompt = `文件名称：${uploadedFileName.value}\n用户需求：${requirement.value}\n\n文件内容：\n${fileContent}`
-    } else if (fileUrl) {
-      const ext = uploadedFileName.value.toLowerCase().substring(uploadedFileName.value.lastIndexOf('.'))
-      const fileTypeMap: { [key: string]: string } = {
-        '.pdf': 'PDF文档', '.doc': 'Word文档', '.docx': 'Word文档',
-        '.xls': 'Excel表格', '.xlsx': 'Excel表格', '.ppt': 'PPT演示文稿',
-        '.pptx': 'PPT演示文稿', '.jpg': '图片文件', '.jpeg': '图片文件',
-        '.png': '图片文件', '.gif': 'GIF动图', '.bmp': '图片文件',
-        '.mp4': '视频文件', '.avi': '视频文件', '.mov': '视频文件',
-        '.mp3': '音频文件', '.wav': '音频文件', '.zip': '压缩文件',
-        '.rar': '压缩文件', '.7z': '压缩文件'
-      }
-      const fileType = fileTypeMap[ext] || '其他文件'
-      prompt = `文件名称：${uploadedFileName.value}\n文件类型：${fileType}\n用户需求：${requirement.value}\n\n请分析这个文件并给出建议。`
     } else {
       prompt = `文件名称：${uploadedFileName.value}\n用户需求：${requirement.value}\n\n请根据文件名和用户需求进行分析。`
     }
@@ -162,6 +131,8 @@ async function submit() {
     const systemPrompt = '你是一个专业的文件分析助手。当前时间是2026年7月。请对文件进行详细、完整的分析，包括文件结构、功能特点、代码逻辑、潜在问题和优化建议等，回答要全面细致，不要简略。'
     const analysis = await callAI(prompt, systemPrompt)
     result.value = analysis
+    saveRecord('analyze', { fileName: uploadedFileName.value, content: fileContent, analysis: analysis, requirement: requirement.value })
+    
   } catch (error) {
     uni.showToast({ title: getUserFriendlyError(error), icon: 'none' })
   } finally {

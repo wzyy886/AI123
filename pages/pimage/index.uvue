@@ -92,7 +92,7 @@
 
 <script setup lang="uts">
 import { ref } from 'vue'
-import { callAI, generateImage, getUserFriendlyError } from '@/utils/ai.js'
+import { callAI, generateImage, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 
 const imageUrl = ref('')
 const cloudImageUrl = ref('')
@@ -131,21 +131,6 @@ function chooseImage() {
 async function submit() {
   if (!imageUrl.value || !requirement.value || loading.value) return
   
-  const token = uni.getStorageSync('token')
-  if (!token) {
-    uni.showModal({
-      title: '提示',
-      content: '请先登录后再使用AI P图功能',
-      confirmText: '去登录',
-      success: (res) => {
-        if (res.confirm) {
-          uni.navigateTo({ url: '/pages/login/index' })
-        }
-      }
-    })
-    return
-  }
-  
   loading.value = true
   
   try {
@@ -158,11 +143,12 @@ async function submit() {
     uni.showLoading({ title: 'AI分析中...', mask: true })
     
     const styleName = styles.find(s => s.value === selectedStyle.value)?.name || '原图'
-    const analyzePrompt = `图片信息：${cloudImageUrl.value}\n风格：${styleName}\n用户需求：${requirement.value}\n\n请分析图片并给出详细的图片编辑方案。`
     
-    const systemPrompt = '你是一个专业的AI图片编辑助手。当前时间是2026年7月。请根据用户的需求提供详细的图片编辑方案和建议。'
-    const response = await callAI(analyzePrompt, systemPrompt)
-    suggestion.value = response
+    const analyzePrompt = `图片信息：${cloudImageUrl.value}\n风格：${styleName}\n用户需求：${requirement.value}\n\n请分析图片并给出详细的图片编辑方案。`
+    const systemPrompt = '你是一个专业的AI图像编辑助手。当前时间是2026年7月。请根据用户的需求提供详细的图片编辑方案和建议。'
+    const suggestionResult = await callAI(analyzePrompt, systemPrompt)
+    suggestion.value = suggestionResult
+    saveRecord('image', { imageUrl: cloudImageUrl.value, style: styleName, requirement: requirement.value, suggestion: suggestionResult })
     
     uni.hideLoading()
     uni.showLoading({ title: 'AI生成图片中...', mask: true })
@@ -173,6 +159,7 @@ async function submit() {
     uni.hideLoading()
     
     generatedImageUrl.value = resultImageUrl
+  
   } catch (error) {
     uni.hideLoading()
     uni.showModal({

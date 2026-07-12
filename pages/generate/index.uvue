@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="uts">
-	import { generateCode, getUserFriendlyError } from '@/utils/ai.js'
+	import { generateCode, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 	
 	const selectedLang = ref('JavaScript')
 	const desc = ref('')
@@ -70,16 +70,6 @@
 		})
 	}
 	
-	const saveHistory = (type: string, content: string) => {
-		const history = uni.getStorageSync('chat_history') || []
-		history.push({
-			type: type,
-			content: content,
-			time: new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-		})
-		uni.setStorageSync('chat_history', history)
-	}
-	
 	const generate = async () => {
 		if (!desc.value.trim() || loading.value) return
 		loading.value = true
@@ -88,7 +78,7 @@
 		try {
 			const response = await generateCode(selectedLang.value, desc.value)
 			result.value = response
-			saveHistory('generate', desc.value)
+			saveRecord('generate', { message: desc.value, response: response, language: selectedLang.value })
 		} catch (e) {
 			uni.showToast({ title: getUserFriendlyError(e), icon: 'none' })
 		} finally {

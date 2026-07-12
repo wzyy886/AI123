@@ -1,26 +1,27 @@
 const MAX_RETRIES = 2
 
-const DEVELOPMENT_MODE = true
+const DEVELOPMENT_MODE = false
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
 const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+const IMAGE_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync'
 
 function callCloudFunction(name, data, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const token = uni.getStorageSync('token')
-    if (!token) {
-      reject(new Error('请先登录后再使用'))
-      return
-    }
 
     uniCloud.callFunction({
       name: name,
-      data: Object.assign({ token: token }, data),
+      data: token ? Object.assign({ token: token }, data) : data,
       success: (res) => {
         const result = res.result
         if (result && result.code === 200) {
           resolve(result.data)
         } else if (result && result.code === 401) {
+          if (DEVELOPMENT_MODE) {
+            callDirectApi(name, data).then(resolve).catch(reject)
+            return
+          }
           reject(new Error('登录已过期，请重新登录'))
         } else if (result && result.code === 400) {
           reject(new Error(result.message || '请求参数有误'))
@@ -130,6 +131,21 @@ function callDirectApi(name, data) {
         temperature: 0.7
       }
       break
+    case 'video':
+      if (data.action === 'message') {
+        requestData = {
+          model: 'qwen-turbo',
+          messages: [
+            { role: 'system', content: '你是一个可爱的少女AI助手，说话温柔甜美，回答要简洁明了。当前时间是2026年7月。' },
+            { role: 'user', content: data.message }
+          ],
+          max_tokens: 2048,
+          temperature: 0.8
+        }
+      } else {
+        return Promise.resolve({ response: '' })
+      }
+      break
     default:
       return Promise.reject(new Error('不支持的API调用'))
   }
@@ -146,16 +162,7 @@ function callDirectApi(name, data) {
       timeout: 300000,
       success: (res) => {
         if (res.statusCode === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
-          const response = res.data.choices[0].message.content;
-          
-          if (name === 'chat') {
-            saveChatHistoryDirectly(data.message, response);
-          } else if (name === 'analyze') {
-            saveFileHistoryDirectly(data.fileName, data.fileUrl, data.requirement, response);
-          } else if (name === 'image') {
-            saveImageHistoryDirectly(data.imageUrl, data.style, data.requirement, response);
-          }
-          
+          const response = res.data.choices[0].message.content
           resolve({ response: response })
         } else {
           reject(new Error('AI服务暂时不可用'))
@@ -166,61 +173,6 @@ function callDirectApi(name, data) {
       }
     })
   })
-}
-
-function saveChatHistoryDirectly(message, response) {
-  try {
-    const userInfo = uni.getStorageSync('userInfo');
-    if (!userInfo || !userInfo.userId) return;
-    
-    uniCloud.database().collection('chat_history').add({
-      userId: userInfo.userId,
-      username: userInfo.username || 'anonymous',
-      message: message,
-      response: response,
-      createdAt: new Date().getTime()
-    });
-  } catch (e) {
-    console.warn('Failed to save chat history directly:', e);
-  }
-}
-
-function saveFileHistoryDirectly(fileName, fileUrl, requirement, analysis) {
-  try {
-    const userInfo = uni.getStorageSync('userInfo');
-    if (!userInfo || !userInfo.userId) return;
-    
-    uniCloud.database().collection('file_history').add({
-      userId: userInfo.userId,
-      username: userInfo.username || 'anonymous',
-      fileName: fileName || '',
-      fileUrl: fileUrl || '',
-      requirement: requirement || '',
-      analysis: analysis,
-      createdAt: new Date().getTime()
-    });
-  } catch (e) {
-    console.warn('Failed to save file history directly:', e);
-  }
-}
-
-function saveImageHistoryDirectly(imageUrl, style, requirement, suggestion) {
-  try {
-    const userInfo = uni.getStorageSync('userInfo');
-    if (!userInfo || !userInfo.userId) return;
-    
-    uniCloud.database().collection('image_history').add({
-      userId: userInfo.userId,
-      username: userInfo.username || 'anonymous',
-      imageUrl: imageUrl || '',
-      style: style || '原图',
-      requirement: requirement || '',
-      suggestion: suggestion,
-      createdAt: new Date().getTime()
-    });
-  } catch (e) {
-    console.warn('Failed to save image history directly:', e);
-  }
 }
 
 function callAI(message, systemPrompt, maxTokens = 8192) {
@@ -280,9 +232,33 @@ function generateImage(prompt) {
   if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
     return Promise.reject(new Error('请输入图片描述'))
   }
-  return callCloudFunction('image', {
-    prompt: prompt
-  }).then(data => data.url)
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: IMAGE_URL,
+      method: 'POST',
+      header: {
+        'Authorization': 'Bearer ' + API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        model: 'wanxiang-v1',
+        prompt: prompt,
+        n: 1,
+        size: '768x768'
+      },
+      timeout: 120000,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && res.data.output && res.data.output.urls) {
+          resolve(res.data.output.urls[0])
+        } else {
+          reject(new Error('图片生成失败'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络连接失败'))
+      }
+    })
+  })
 }
 
 function formatTime() {
@@ -313,6 +289,14 @@ function getUserFriendlyError(error) {
   return message
 }
 
+function saveRecord(type, data) {
+  const token = uni.getStorageSync('token')
+  uniCloud.callFunction({
+    name: 'saveRecord',
+    data: token ? { token: token, type: type, data: data } : { type: type, data: data },
+    fail: () => {}
+  })
+}
 export {
   callAI,
   generateCode,
@@ -321,5 +305,6 @@ export {
   generateImage,
   formatTime,
   formatSize,
-  getUserFriendlyError
+  getUserFriendlyError,
+  saveRecord
 }

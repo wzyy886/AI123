@@ -1,6 +1,12 @@
 {
   "bsonType": "object",
-  "required": ["userId", "username", "message", "response", "createdAt"],
+  "required": ["userId", "username", "requirement", "suggestion", "createdAt"],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": true
+  },
   "properties": {
     "_id": {
       "bsonType": "string",
@@ -14,21 +20,21 @@
       "bsonType": "string",
       "description": "用户名"
     },
-    "message": {
-      "bsonType": "string",
-      "description": "用户消息"
-    },
-    "response": {
-      "bsonType": "string",
-      "description": "AI回复"
-    },
     "imageUrl": {
       "bsonType": "string",
-      "description": "生成的图片URL"
+      "description": "图片URL"
     },
     "style": {
       "bsonType": "string",
       "description": "图片风格"
+    },
+    "requirement": {
+      "bsonType": "string",
+      "description": "用户需求"
+    },
+    "suggestion": {
+      "bsonType": "string",
+      "description": "编辑建议"
     },
     "createdAt": {
       "bsonType": "long",

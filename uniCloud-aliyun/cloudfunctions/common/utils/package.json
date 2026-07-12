@@ -1,6 +1,0 @@
-{
-  "name": "ai-assistant-common",
-  "version": "1.0.0",
-  "description": "AI助手项目公共工具模块",
-  "main": "index.js"
-}

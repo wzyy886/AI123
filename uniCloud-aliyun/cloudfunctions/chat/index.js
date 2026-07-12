@@ -1,54 +1,28 @@
 'use strict';
 
-const aiConfig = require('../common/uni-config-center/ai-config/index.js');
-const API_KEY = aiConfig.dashscope.apiKey;
-const BASE_URL = aiConfig.dashscope.baseUrl;
+const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ';
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
-function validateToken(token) {
-  if (!token || typeof token !== 'string') {
-    return { valid: false, message: 'Token不能为空' };
-  }
-  if (token.length < 32) {
-    return { valid: false, message: 'Token格式不正确' };
-  }
-  return { valid: true, message: '' };
-}
-
-function sanitizeInput(input, maxLength) {
-  if (typeof input !== 'string') {
-    return '';
-  }
+function sanitizeInput(input, maxLength = 1000) {
+  if (typeof input !== 'string') return '';
   let result = input.trim();
-  if (result.length > (maxLength || 1000)) {
-    result = result.substring(0, maxLength || 1000);
-  }
+  if (result.length > maxLength) result = result.substring(0, maxLength);
   result = result.replace(/[<>]/g, '');
   return result;
 }
 
-function isTokenExpired(expireAt) {
-  if (!expireAt) return true;
-  return Date.now() > expireAt;
-}
-
 async function handler(event, context) {
   const { message, systemPrompt, maxTokens, token } = event;
-
-  const tokenValidation = validateToken(token);
-  if (!tokenValidation.valid) {
-    return { code: 401, message: tokenValidation.message, data: null };
-  }
-
   const db = uniCloud.database();
-  const user = await db.collection('users').where({ token: token }).get();
-  
-  if (user.data.length === 0) {
-    return { code: 401, message: '未登录或登录已过期', data: null };
-  }
+  let userData = { _id: 'anonymous', username: 'anonymous' };
 
-  const userData = user.data[0];
-  if (isTokenExpired(userData.tokenExpireAt)) {
-    return { code: 401, message: '登录已过期，请重新登录', data: null };
+  if (token) {
+    try {
+      const user = await db.collection('users').where({ token: token }).get();
+      if (user.data.length > 0) userData = user.data[0];
+    } catch (e) {
+      console.log('查询用户失败:', e.message);
+    }
   }
 
   if (!message || typeof message !== 'string' || message.trim() === '') {
@@ -77,11 +51,26 @@ async function handler(event, context) {
 
     if (res.status === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
       const response = res.data.choices[0].message.content;
+      
+      try {
+        await db.collection('chat_history').add({
+          userId: userData._id,
+          username: userData.username || 'anonymous',
+          message: sanitizedMessage,
+          response: response,
+          createdAt: Date.now()
+        });
+        console.log('聊天记录保存成功');
+      } catch (dbErr) {
+        console.error('数据库保存失败:', dbErr.message);
+      }
+      
       return { code: 200, message: 'success', data: { response: response } };
     } else {
       return { code: 500, message: 'AI服务暂时不可用，请稍后重试', data: null };
     }
   } catch (error) {
+    console.error('chat云函数错误:', error.message);
     return { code: 500, message: '服务器繁忙，请稍后重试', data: null };
   }
 }

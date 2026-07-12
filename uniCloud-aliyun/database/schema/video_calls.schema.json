@@ -1,6 +1,12 @@
 {
   "bsonType": "object",
   "required": ["userId", "username", "status", "startedAt"],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": true
+  },
   "properties": {
     "_id": {
       "bsonType": "string",
@@ -16,19 +22,19 @@
     },
     "status": {
       "bsonType": "string",
-      "description": "通话状态"
+      "description": "通话状态：calling/ended"
     },
     "startedAt": {
       "bsonType": "long",
-      "description": "开始时间"
+      "description": "开始时间戳"
     },
     "endedAt": {
       "bsonType": "long",
-      "description": "结束时间"
+      "description": "结束时间戳"
     },
     "duration": {
       "bsonType": "long",
-      "description": "通话时长"
+      "description": "通话时长（秒）"
     }
   }
 }

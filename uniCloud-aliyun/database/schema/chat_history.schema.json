@@ -1,6 +1,12 @@
 {
   "bsonType": "object",
   "required": ["userId", "username", "message", "response", "createdAt"],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": true
+  },
   "properties": {
     "_id": {
       "bsonType": "string",
@@ -21,6 +27,18 @@
     "response": {
       "bsonType": "string",
       "description": "AI回复"
+    },
+    "type": {
+      "bsonType": "string",
+      "description": "类型：chat/generate/review/explain"
+    },
+    "language": {
+      "bsonType": "string",
+      "description": "编程语言"
+    },
+    "framework": {
+      "bsonType": "string",
+      "description": "框架"
     },
     "createdAt": {
       "bsonType": "long",

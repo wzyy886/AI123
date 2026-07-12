@@ -1,6 +1,12 @@
 {
   "bsonType": "object",
   "required": ["username", "password", "token", "tokenExpireAt"],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": true
+  },
   "properties": {
     "_id": {
       "bsonType": "string",

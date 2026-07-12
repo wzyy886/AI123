@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="uts">
-	import { explainCode, getUserFriendlyError } from '@/utils/ai.js'
+	import { explainCode, getUserFriendlyError, saveRecord } from '@/utils/ai.js'
 	
 	const selectedLang = ref('JavaScript')
 	const code = ref('')
@@ -70,16 +70,6 @@
 		})
 	}
 	
-	const saveHistory = (type: string, content: string) => {
-		const history = uni.getStorageSync('chat_history') || []
-		history.push({
-			type: type,
-			content: content,
-			time: new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-		})
-		uni.setStorageSync('chat_history', history)
-	}
-	
 	const explain = async () => {
 		if (!code.value.trim() || loading.value) return
 		loading.value = true
@@ -88,7 +78,7 @@
 		try {
 			const response = await explainCode(selectedLang.value, code.value)
 			result.value = response
-			saveHistory('explain', code.value.substring(0, 50) + '...')
+			saveRecord('explain', { message: code.value.substring(0, 100) + '...', response: response, language: selectedLang.value })
 		} catch (e) {
 			uni.showToast({ title: getUserFriendlyError(e), icon: 'none' })
 		} finally {

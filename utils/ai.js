@@ -149,11 +149,11 @@ function callDirectApi(name, data) {
           const response = res.data.choices[0].message.content;
           
           if (name === 'chat') {
-            saveChatHistoryDirectly(message, response);
+            saveChatHistoryDirectly(data.message, response);
           } else if (name === 'analyze') {
-            saveFileHistoryDirectly(fileName, fileUrl, requirement, response);
+            saveFileHistoryDirectly(data.fileName, data.fileUrl, data.requirement, response);
           } else if (name === 'image') {
-            saveImageHistoryDirectly(imageUrl, style, requirement, response);
+            saveImageHistoryDirectly(data.imageUrl, data.style, data.requirement, response);
           }
           
           resolve({ response: response })

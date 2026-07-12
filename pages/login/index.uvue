@@ -59,15 +59,6 @@ const password = ref('')
 const rememberMe = ref(false)
 const loading = ref(false)
 
-function generateLocalToken() {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let token = ''
-  for (let i = 0; i < 64; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return token
-}
-
 async function login() {
   if (!username.value || !password.value || loading.value) return
   
@@ -100,19 +91,7 @@ async function login() {
       uni.showToast({ title: res.result.message || '登录失败', icon: 'none' })
     }
   } catch (error: any) {
-    const localToken = generateLocalToken()
-    uni.setStorageSync('token', localToken)
-    uni.setStorageSync('userInfo', {
-      userId: 'local_' + Date.now(),
-      username: username.value,
-      email: ''
-    })
-    
-    uni.showToast({ title: '网络异常，已进入离线模式', icon: 'none', duration: 3000 })
-    
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/index/index' })
-    }, 1500)
+    uni.showToast({ title: '登录失败，请检查网络后重试', icon: 'none', duration: 3000 })
   } finally {
     loading.value = false
   }

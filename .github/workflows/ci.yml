@@ -19,7 +19,10 @@ jobs:
         node-version: 20.x
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        echo "Node.js版本: $(node --version)"
+        echo "npm版本: $(npm --version)"
 
     - name: Validate cloud function syntax
       run: |
@@ -31,6 +34,12 @@ jobs:
           fi
         done
         echo "云函数语法检查完成"
+
+    - name: Check test file syntax
+      run: |
+        echo "=== 检查测试文件语法 ==="
+        node --check test/utils.test.js
+        echo "测试文件语法检查通过"
 
     - name: Check documentation files
       run: |
@@ -53,6 +62,13 @@ jobs:
 
     - name: Run ESLint
       run: npx eslint uniCloud-aliyun/cloudfunctions/ --ext .js || echo "ESLint检查完成"
+
+    - name: List test files
+      run: |
+        echo "=== 测试文件列表 ==="
+        ls -la test/
+        echo "=== Jest配置 ==="
+        cat jest.config.js
 
     - name: Run unit tests
       run: npm test

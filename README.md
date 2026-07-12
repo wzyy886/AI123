@@ -77,6 +77,12 @@ ai/
 │           └── uni-config-center/ai-config/  # 配置文件
 ├── utils/                     # 工具函数
 │   └── ai.js                  # AI调用工具（双模式架构）
+├── uniCloud-aliyun/database/schema/  # 数据库schema
+│   ├── users.schema.json      # 用户表
+│   ├── chat_history.schema.json    # 聊天记录表
+│   ├── file_history.schema.json    # 文件分析记录表
+│   ├── image_history.schema.json   # 图片编辑记录表
+│   └── video_calls.schema.json     # 视频通话记录表
 ├── .github/workflows/         # CI/CD配置
 │   └── ci.yml                 # GitHub Actions工作流
 ├── API.md                     # API接口文档

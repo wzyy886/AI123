@@ -496,6 +496,84 @@ cloudfunctions/
     └── uni-config-center/ai-config/  # API Key配置
 ```
 
+### 数据库表结构
+
+项目使用uniCloud云数据库，包含以下集合：
+
+#### 1. users（用户表）
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| _id | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| password | string | 是 | 密码哈希（SHA256+盐值） |
+| salt | string | 是 | 盐值 |
+| token | string | 是 | 登录Token |
+| tokenExpireAt | long | 是 | Token过期时间戳 |
+| createdAt | long | 否 | 创建时间戳 |
+| updatedAt | long | 否 | 更新时间戳 |
+
+#### 2. chat_history（聊天记录表）
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| _id | string | 是 | 记录ID |
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| message | string | 是 | 用户消息 |
+| response | string | 是 | AI回复 |
+| createdAt | long | 是 | 创建时间戳 |
+
+#### 3. file_history（文件分析记录表）
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| _id | string | 是 | 记录ID |
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| fileName | string | 是 | 文件名 |
+| fileType | string | 是 | 文件类型 |
+| content | string | 否 | 文件内容 |
+| analysis | string | 是 | 分析结果 |
+| createdAt | long | 是 | 创建时间戳 |
+
+#### 4. image_history（图片编辑记录表）
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| _id | string | 是 | 记录ID |
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| message | string | 是 | 用户需求 |
+| response | string | 是 | AI回复 |
+| imageUrl | string | 否 | 生成的图片URL |
+| style | string | 否 | 图片风格 |
+| createdAt | long | 是 | 创建时间戳 |
+
+#### 5. video_calls（视频通话记录表）
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| _id | string | 是 | 记录ID |
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| status | string | 是 | 通话状态（calling/ended） |
+| startedAt | long | 是 | 开始时间戳 |
+| endedAt | long | 否 | 结束时间戳 |
+| duration | long | 否 | 通话时长（秒） |
+
+### schema文件位置
+
+所有数据库schema文件位于：`uniCloud-aliyun/database/schema/`
+
+| 文件 | 对应集合 |
+|------|----------|
+| users.schema.json | users |
+| chat_history.schema.json | chat_history |
+| file_history.schema.json | file_history |
+| image_history.schema.json | image_history |
+| video_calls.schema.json | video_calls |
+
 ### 核心安全组件
 
 | 组件 | 功能 |

@@ -1,6 +1,6 @@
 const MAX_RETRIES = 2
 
-const DEVELOPMENT_MODE = false
+const DEVELOPMENT_MODE = true
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
 const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
@@ -146,7 +146,17 @@ function callDirectApi(name, data) {
       timeout: 300000,
       success: (res) => {
         if (res.statusCode === 200 && res.data && res.data.choices && res.data.choices.length > 0) {
-          resolve({ response: res.data.choices[0].message.content })
+          const response = res.data.choices[0].message.content;
+          
+          if (name === 'chat') {
+            saveChatHistoryDirectly(message, response);
+          } else if (name === 'analyze') {
+            saveFileHistoryDirectly(fileName, fileUrl, requirement, response);
+          } else if (name === 'image') {
+            saveImageHistoryDirectly(imageUrl, style, requirement, response);
+          }
+          
+          resolve({ response: response })
         } else {
           reject(new Error('AI服务暂时不可用'))
         }
@@ -156,6 +166,61 @@ function callDirectApi(name, data) {
       }
     })
   })
+}
+
+function saveChatHistoryDirectly(message, response) {
+  try {
+    const userInfo = uni.getStorageSync('userInfo');
+    if (!userInfo || !userInfo.userId) return;
+    
+    uniCloud.database().collection('chat_history').add({
+      userId: userInfo.userId,
+      username: userInfo.username || 'anonymous',
+      message: message,
+      response: response,
+      createdAt: new Date().getTime()
+    });
+  } catch (e) {
+    console.warn('Failed to save chat history directly:', e);
+  }
+}
+
+function saveFileHistoryDirectly(fileName, fileUrl, requirement, analysis) {
+  try {
+    const userInfo = uni.getStorageSync('userInfo');
+    if (!userInfo || !userInfo.userId) return;
+    
+    uniCloud.database().collection('file_history').add({
+      userId: userInfo.userId,
+      username: userInfo.username || 'anonymous',
+      fileName: fileName || '',
+      fileUrl: fileUrl || '',
+      requirement: requirement || '',
+      analysis: analysis,
+      createdAt: new Date().getTime()
+    });
+  } catch (e) {
+    console.warn('Failed to save file history directly:', e);
+  }
+}
+
+function saveImageHistoryDirectly(imageUrl, style, requirement, suggestion) {
+  try {
+    const userInfo = uni.getStorageSync('userInfo');
+    if (!userInfo || !userInfo.userId) return;
+    
+    uniCloud.database().collection('image_history').add({
+      userId: userInfo.userId,
+      username: userInfo.username || 'anonymous',
+      imageUrl: imageUrl || '',
+      style: style || '原图',
+      requirement: requirement || '',
+      suggestion: suggestion,
+      createdAt: new Date().getTime()
+    });
+  } catch (e) {
+    console.warn('Failed to save image history directly:', e);
+  }
 }
 
 function callAI(message, systemPrompt, maxTokens = 8192) {

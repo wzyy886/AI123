@@ -145,27 +145,71 @@
 
 ## 数据库设计
 
+项目使用 uniCloud 云数据库（NoSQL），共 5 张数据表。
+
 ### users 用户表
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| _id | string | 用户ID |
-| username | string | 用户名 |
-| password | string | 密码哈希 (SHA256 + salt) |
+| _id | string | 主键ID（自动生成） |
+| username | string | 用户名，唯一 |
+| password | string | 密码哈希（SHA256 + salt） |
 | salt | string | 密码盐值 |
-| token | string | 登录令牌 |
-| token_expire | number | 令牌过期时间戳 |
-| create_time | number | 创建时间 |
+| token | string | 当前登录令牌 |
+| tokenExpire | number | 令牌过期时间戳 |
+| status | string | 用户状态（active/disabled） |
+| createdAt | number | 注册时间戳 |
 
 ### chat_history 聊天历史表
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| _id | string | 记录ID |
-| user_id | string | 用户ID |
+| _id | string | 主键ID（自动生成） |
+| userId | string | 用户ID（匿名为 anonymous） |
+| message | string | 用户消息内容 |
+| reply | string | AI回复内容 |
+| status | string | 状态（success/failed） |
+| startedAt | number | 请求开始时间戳 |
+| endedAt | number | 请求结束时间戳 |
+
+### file_history 文件分析历史表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 主键ID（自动生成） |
+| userId | string | 用户ID |
+| fileName | string | 文件名 |
+| fileType | string | 文件类型（code/document/data） |
+| userRequest | string | 用户的分析需求 |
+| result | string | 分析结果 |
+| status | string | 状态（success/failed） |
+| startedAt | number | 开始时间戳 |
+| endedAt | number | 结束时间戳 |
+
+### image_history 图片历史表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 主键ID（自动生成） |
+| userId | string | 用户ID |
+| action | string | 操作类型（generate/edit） |
+| prompt | string | 提示词 |
+| imageUrl | string | 生成的图片URL |
+| status | string | 状态（success/failed） |
+| startedAt | number | 开始时间戳 |
+
+### video_calls 视频通话表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 主键ID（自动生成） |
+| userId | string | 用户ID |
+| sessionId | string | 会话ID |
 | message | string | 用户消息 |
 | reply | string | AI回复 |
-| create_time | number | 创建时间 |
+| status | string | 状态（success/failed） |
+| startedAt | number | 开始时间戳 |
+| endedAt | number | 结束时间戳 |
 
 ## 安全机制
 
@@ -196,6 +240,4 @@
 - [Prompt日志](prompt_log.md)
 - [个人总结报告](summary.md)
 
-## 许可证
 
-MIT License

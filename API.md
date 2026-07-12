@@ -541,57 +541,65 @@ uniCloud.callFunction({
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| _id | string | 自动 | 主键ID |
+| _id | string | 自动 | 主键ID（自动生成） |
 | username | string | 是 | 用户名，唯一 |
 | password | string | 是 | 密码哈希（SHA256+salt） |
 | salt | string | 是 | 密码盐值 |
 | token | string | 否 | 当前登录令牌 |
-| token_expire | number | 否 | 令牌过期时间戳 |
-| create_time | number | 是 | 注册时间戳 |
+| tokenExpire | number | 否 | 令牌过期时间戳 |
+| status | string | 是 | 用户状态（active/disabled） |
+| createdAt | number | 是 | 注册时间戳 |
 
 ### chat_history 聊天历史表
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| _id | string | 自动 | 主键ID |
-| user_id | string | 是 | 用户ID（匿名为 anonymous） |
-| message | string | 是 | 用户消息 |
-| reply | string | 是 | AI回复 |
-| create_time | number | 是 | 创建时间戳 |
+| _id | string | 自动 | 主键ID（自动生成） |
+| userId | string | 是 | 用户ID（匿名为 anonymous） |
+| message | string | 是 | 用户消息内容 |
+| reply | string | 是 | AI回复内容 |
+| status | string | 是 | 状态（success/failed） |
+| startedAt | number | 是 | 请求开始时间戳 |
+| endedAt | number | 是 | 请求结束时间戳 |
 
 ### file_history 文件分析历史表
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| _id | string | 自动 | 主键ID |
-| user_id | string | 是 | 用户ID |
-| file_name | string | 是 | 文件名 |
-| file_type | string | 否 | 文件类型 |
-| request | string | 是 | 用户需求 |
+| _id | string | 自动 | 主键ID（自动生成） |
+| userId | string | 是 | 用户ID |
+| fileName | string | 是 | 文件名 |
+| fileType | string | 否 | 文件类型（code/document/data） |
+| userRequest | string | 是 | 用户的分析需求 |
 | result | string | 是 | 分析结果 |
-| create_time | number | 是 | 创建时间戳 |
+| status | string | 是 | 状态（success/failed） |
+| startedAt | number | 是 | 开始时间戳 |
+| endedAt | number | 是 | 结束时间戳 |
 
 ### image_history 图片历史表
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| _id | string | 自动 | 主键ID |
-| user_id | string | 是 | 用户ID |
+| _id | string | 自动 | 主键ID（自动生成） |
+| userId | string | 是 | 用户ID |
 | action | string | 是 | 操作类型（generate/edit） |
 | prompt | string | 是 | 提示词 |
-| image_url | string | 是 | 生成的图片URL |
-| create_time | number | 是 | 创建时间戳 |
+| imageUrl | string | 是 | 生成的图片URL |
+| status | string | 是 | 状态（success/failed） |
+| startedAt | number | 是 | 开始时间戳 |
 
 ### video_calls 视频通话表
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| _id | string | 自动 | 主键ID |
-| user_id | string | 是 | 用户ID |
-| session_id | string | 是 | 会话ID |
+| _id | string | 自动 | 主键ID（自动生成） |
+| userId | string | 是 | 用户ID |
+| sessionId | string | 是 | 会话ID |
 | message | string | 是 | 用户消息 |
 | reply | string | 是 | AI回复 |
-| create_time | number | 是 | 创建时间戳 |
+| status | string | 是 | 状态（success/failed） |
+| startedAt | number | 是 | 开始时间戳 |
+| endedAt | number | 是 | 结束时间戳 |
 
 ---
 

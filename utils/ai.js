@@ -1,6 +1,6 @@
 const MAX_RETRIES = 2
 
-const DEVELOPMENT_MODE = false
+const DEVELOPMENT_MODE = true
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
 const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
@@ -182,6 +182,15 @@ function callAI(message, systemPrompt, maxTokens = 8192) {
   if (message.length > 5000) {
     return Promise.reject(new Error('输入内容过长，请精简后重试'))
   }
+  
+  if (DEVELOPMENT_MODE) {
+    return callDirectApi('chat', {
+      message: message,
+      systemPrompt: systemPrompt,
+      maxTokens: maxTokens
+    }).then(data => data.response)
+  }
+  
   return callCloudFunction('chat', {
     message: message,
     systemPrompt: systemPrompt,
@@ -196,6 +205,14 @@ function generateCode(language, description) {
   if (description.length > 2000) {
     return Promise.reject(new Error('描述内容过长，请精简后重试'))
   }
+  
+  if (DEVELOPMENT_MODE) {
+    return callDirectApi('generate', {
+      language: language,
+      description: description
+    }).then(data => data.response)
+  }
+  
   return callCloudFunction('generate', {
     language: language,
     description: description
@@ -209,6 +226,14 @@ function reviewCode(language, code) {
   if (code.length > 10000) {
     return Promise.reject(new Error('代码内容过长，请精简后重试'))
   }
+  
+  if (DEVELOPMENT_MODE) {
+    return callDirectApi('review', {
+      language: language,
+      code: code
+    }).then(data => data.response)
+  }
+  
   return callCloudFunction('review', {
     language: language,
     code: code
@@ -222,6 +247,14 @@ function explainCode(language, code) {
   if (code.length > 10000) {
     return Promise.reject(new Error('代码内容过长，请精简后重试'))
   }
+  
+  if (DEVELOPMENT_MODE) {
+    return callDirectApi('explain', {
+      language: language,
+      code: code
+    }).then(data => data.response)
+  }
+  
   return callCloudFunction('explain', {
     language: language,
     code: code
@@ -248,14 +281,24 @@ function generateImage(prompt) {
       },
       timeout: 120000,
       success: (res) => {
-        if (res.statusCode === 200 && res.data && res.data.output && res.data.output.urls) {
-          resolve(res.data.output.urls[0])
+        console.log('图片生成API响应:', JSON.stringify(res, null, 2))
+        
+        if (res.statusCode === 200 && res.data) {
+          if (res.data.output && res.data.output.results && res.data.output.results.length > 0) {
+            resolve(res.data.output.results[0].url)
+          } else if (res.data.output && res.data.output.urls && res.data.output.urls.length > 0) {
+            resolve(res.data.output.urls[0])
+          } else if (res.data.output && typeof res.data.output === 'string') {
+            resolve(res.data.output)
+          } else {
+            reject(new Error('图片生成失败：' + JSON.stringify(res.data)))
+          }
         } else {
-          reject(new Error('图片生成失败'))
+          reject(new Error('图片生成失败，状态码：' + res.statusCode))
         }
       },
       fail: (err) => {
-        reject(new Error('网络连接失败'))
+        reject(new Error('网络连接失败：' + JSON.stringify(err)))
       }
     })
   })

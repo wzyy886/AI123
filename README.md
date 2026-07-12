@@ -45,11 +45,35 @@
 
 ## 项目截图
 
-> ⚠️ **待补充**: 请添加项目实际运行截图
+### 登录页
 
-| 首页 - AI问答 | 文件分析 | AI P图 |
-|--------------|----------|--------|
-| （截图占位） | （截图占位） | （截图占位） |
+![登录页](screenshots/login.png)
+
+渐紫色背景的登录界面，支持邮箱/用户名登录，包含记住我、忘记密码、注册入口等功能。
+
+### 首页 - AI问答
+
+![AI问答](screenshots/chat.png)
+
+智能问答首页，支持上下文对话，提供快捷提问标签（JavaScript数组去重、Python爬虫示例、Vue组件开发、SQL优化等），底部导航栏切换功能模块。
+
+### 文件分析
+
+![文件分析](screenshots/upload.png)
+
+文件上传分析页面，支持代码文件、文档、数据文件上传，可自定义分析需求，AI智能解读文件内容。
+
+### AI P图
+
+![AI P图](screenshots/pimage.png)
+
+AI图片编辑页面，支持图片上传、修图需求描述、多种风格选择（原图、美颜、艺术、胶片等），一键生成美化图片。
+
+### 视频通话
+
+![视频通话](screenshots/video.png)
+
+AI视频通话页面，实时语音对话交互，视频画面展示，支持麦克风和摄像头控制。
 
 ---
 
@@ -143,9 +167,35 @@
 
 ### 环境要求
 
-- HBuilderX 3.8+
-- uniCloud 账号
-- 阿里云 DashScope API Key
+| 工具/服务 | 版本要求 | 说明 |
+|-----------|----------|------|
+| HBuilderX | 3.8+ | 前端开发IDE |
+| uniCloud | - | 阿里云版云服务空间 |
+| 阿里云 DashScope | - | AI API 服务 |
+| Node.js | 16+ | 本地开发（运行单元测试） |
+
+### 服务配置信息
+
+> ⚠️ 以下为示例配置，实际部署时请替换为你自己的服务信息
+
+#### uniCloud 云服务空间
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| 服务空间名称 | `wzy` | 阿里云服务空间 |
+| SpaceId | `mp-52179502-df44-46c2-a3c7-80d1ae48868a` | 空间唯一标识 |
+| 服务商 | 阿里云 | 云服务提供商 |
+| 计费方式 | 按量计费 | 后付费模式 |
+
+#### 阿里云 DashScope API
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| API 地址 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 兼容 OpenAI 格式 |
+| 图片生成 API | `https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync` | 万相 AI 接口 |
+| 对话模型 | `qwen-turbo` | 通义千问 Turbo 版 |
+| 图片模型 | `wanxiang-v1` | 万相 AI 图片生成 |
+| API Key | `sk-xxxxxxxxxxxxxxxx` | 从阿里云控制台获取 |
 
 ### 安装步骤
 
@@ -157,29 +207,69 @@
 2. **配置云服务**
    ```
    右键 uniCloud-aliyun → 关联云服务空间
+   选择你的阿里云服务空间（如 wzy）
    ```
 
 3. **配置 API Key**
-   - 打开 `uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js`
-   - 填入你的阿里云 DashScope API Key
+
+   打开配置文件：
+   ```
+   uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js
+   ```
+
+   修改配置内容：
+   ```javascript
+   module.exports = {
+     apiKey: '你的阿里云DashScope API Key',  // 👈 在这里填入你的API Key
+     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+     imageUrl: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync',
+     models: {
+       chat: 'qwen-turbo',
+       image: 'wanxiang-v1'
+     },
+     // ... 其他配置
+   };
+   ```
+
+   > 🔑 **获取 API Key**: 登录阿里云 DashScope 控制台 → API Key 管理 → 创建新 API Key
 
 4. **上传云函数**
    ```
-   右键每个云函数 → 上传部署
+   右键 uniCloud-aliyun/cloudfunctions 目录
+   → 上传所有云函数及公共模块
+   等待所有云函数部署完成
    ```
 
 5. **初始化数据库**
-   - 在 uniCloud 控制台创建以下数据表：
-     - `users` - 用户表
-     - `chat_history` - 聊天历史
-     - `file_history` - 文件分析历史
-     - `image_history` - 图片生成历史
-     - `video_calls` - 视频通话记录
+
+   在 uniCloud 控制台创建以下数据表（Schema 可根据需要设置）：
+
+   | 表名 | 说明 | 用途 |
+   |------|------|------|
+   | `users` | 用户表 | 存储用户账号信息 |
+   | `chat_history` | 聊天历史表 | 记录 AI 对话记录 |
+   | `file_history` | 文件分析历史表 | 记录文件分析记录 |
+   | `image_history` | 图片历史表 | 记录 AI 图片生成记录 |
+   | `video_calls` | 视频通话表 | 记录视频通话记录 |
+
+   > 💡 也可以在 HBuilderX 中右键云数据库 → 新建数据表，自动创建表结构
 
 6. **运行项目**
    ```
-   HBuilderX → 运行 → 运行到浏览器 / 运行到小程序模拟器
+   HBuilderX → 运行 → 运行到浏览器 → Chrome
+   或：运行 → 运行到小程序模拟器 → 微信开发者工具
    ```
+
+### 验证部署
+
+部署完成后，可以按以下步骤验证：
+
+1. **打开应用** → 能正常显示登录页面
+2. **注册账号** → 提示注册成功，users 表新增数据
+3. **AI 问答** → 发送消息能收到 AI 回复，chat_history 表新增数据
+4. **文件分析** → 上传文件能正常分析
+5. **AI P图** → 上传图片能正常生成
+6. **视频通话** → 能进入视频通话页面
 
 ## 云函数列表
 

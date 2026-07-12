@@ -40,12 +40,6 @@ async function handler(event, context) {
   }
 
   if (action === 'start') {
-    await db.collection('video_calls').add({
-      userId: userData._id,
-      status: 'calling',
-      startedAt: new Date().getTime()
-    }, { validateSchema: false });
-
     return {
       code: 200,
       message: 'success',
@@ -56,14 +50,6 @@ async function handler(event, context) {
       }
     };
   } else if (action === 'end') {
-    await db.collection('video_calls').where({
-      userId: userData._id,
-      status: 'calling'
-    }).update({
-      status: 'ended',
-      endedAt: new Date().getTime()
-    });
-
     return {
       code: 200,
       message: 'success',

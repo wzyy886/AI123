@@ -1,0 +1,34 @@
+{
+  "bsonType": "object",
+  "required": ["userId", "username", "status", "startedAt"],
+  "properties": {
+    "_id": {
+      "bsonType": "string",
+      "description": "记录ID"
+    },
+    "userId": {
+      "bsonType": "string",
+      "description": "用户ID"
+    },
+    "username": {
+      "bsonType": "string",
+      "description": "用户名"
+    },
+    "status": {
+      "bsonType": "string",
+      "description": "通话状态"
+    },
+    "startedAt": {
+      "bsonType": "long",
+      "description": "开始时间"
+    },
+    "endedAt": {
+      "bsonType": "long",
+      "description": "结束时间"
+    },
+    "duration": {
+      "bsonType": "long",
+      "description": "通话时长"
+    }
+  }
+}

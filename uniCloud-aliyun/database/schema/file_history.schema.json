@@ -1,0 +1,38 @@
+{
+  "bsonType": "object",
+  "required": ["userId", "username", "fileName", "fileType", "content", "analysis", "createdAt"],
+  "properties": {
+    "_id": {
+      "bsonType": "string",
+      "description": "记录ID"
+    },
+    "userId": {
+      "bsonType": "string",
+      "description": "用户ID"
+    },
+    "username": {
+      "bsonType": "string",
+      "description": "用户名"
+    },
+    "fileName": {
+      "bsonType": "string",
+      "description": "文件名"
+    },
+    "fileType": {
+      "bsonType": "string",
+      "description": "文件类型"
+    },
+    "content": {
+      "bsonType": "string",
+      "description": "文件内容"
+    },
+    "analysis": {
+      "bsonType": "string",
+      "description": "分析结果"
+    },
+    "createdAt": {
+      "bsonType": "long",
+      "description": "创建时间戳"
+    }
+  }
+}

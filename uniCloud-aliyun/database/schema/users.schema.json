@@ -1,0 +1,38 @@
+{
+  "bsonType": "object",
+  "required": ["username", "password", "token", "tokenExpireAt"],
+  "properties": {
+    "_id": {
+      "bsonType": "string",
+      "description": "用户ID"
+    },
+    "username": {
+      "bsonType": "string",
+      "description": "用户名"
+    },
+    "password": {
+      "bsonType": "string",
+      "description": "密码哈希"
+    },
+    "salt": {
+      "bsonType": "string",
+      "description": "盐值"
+    },
+    "token": {
+      "bsonType": "string",
+      "description": "登录Token"
+    },
+    "tokenExpireAt": {
+      "bsonType": "long",
+      "description": "Token过期时间"
+    },
+    "createdAt": {
+      "bsonType": "long",
+      "description": "创建时间"
+    },
+    "updatedAt": {
+      "bsonType": "long",
+      "description": "更新时间"
+    }
+  }
+}

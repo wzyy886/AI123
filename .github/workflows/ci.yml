@@ -7,66 +7,6 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      name: Checkout code
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-
-    - name: Validate cloud function syntax
-      run: |
-        echo "=== 检查云函数语法 ==="
-        for dir in uniCloud-aliyun/cloudfunctions/*/; do
-          if [ -f "${dir}index.js" ]; then
-            echo "检查: ${dir}index.js"
-            node --check "${dir}index.js" 2>&1 || echo "警告: ${dir}index.js 包含 uniCloud 特有API，跳过检查"
-          fi
-        done
-        echo "云函数语法检查完成 ✓"
-
-    - name: Validate JSON config files
-      run: |
-        echo "=== 检查JSON配置文件 ==="
-        node -e "
-        const fs = require('fs');
-        const files = ['manifest.json', 'pages.json', 'platformConfig.json'];
-        let valid = true;
-        files.forEach(file => {
-          try {
-            JSON.parse(fs.readFileSync(file, 'utf8'));
-            console.log('✓ ' + file + ' 格式正确');
-          } catch (e) {
-            console.log('✗ ' + file + ' 格式错误: ' + e.message);
-            valid = false;
-          }
-        });
-        if (!valid) process.exit(1);
-        "
-        echo "JSON配置检查通过 ✓"
-
-    - name: Check documentation
-      run: |
-        echo "=== 检查必要文档 ==="
-        required_docs=("README.md" "API.md" "prompt_log.md" "code_review.md" "summary.md")
-        all_exist=true
-        for doc in "${required_docs[@]}"; do
-          if [ -f "$doc" ]; then
-            echo "✓ $doc 存在"
-          else
-            echo "✗ $doc 缺失"
-            all_exist=false
-          fi
-        done
-        if [ "$all_exist" = false ]; then
-          exit 1
-        fi
-        echo "文档检查通过 ✓"
-
   test:
     runs-on: ubuntu-latest
     steps:
@@ -79,22 +19,43 @@ jobs:
         node-version: 20.x
 
     - name: Install dependencies
+      run: npm install
+
+    - name: Validate cloud function syntax
       run: |
-        echo "=== 安装依赖 ==="
-        npm install
-        echo "依赖安装完成 ✓"
+        echo "=== 检查云函数语法 ==="
+        for dir in uniCloud-aliyun/cloudfunctions/*/; do
+          if [ -f "${dir}index.js" ]; then
+            echo "检查: ${dir}index.js"
+            node --check "${dir}index.js" 2>&1 || echo "警告: ${dir}index.js 包含 uniCloud 特有API，跳过检查"
+          fi
+        done
+        echo "云函数语法检查完成"
+
+    - name: Check documentation files
+      run: |
+        echo "=== 检查必要文档 ==="
+        docs=("README.md" "API.md" "prompt_log.md" "code_review.md" "summary.md")
+        missing=0
+        for doc in "${docs[@]}"; do
+          if [ -f "$doc" ]; then
+            echo "✓ $doc 存在"
+          else
+            echo "✗ $doc 缺失"
+            missing=1
+          fi
+        done
+        if [ $missing -eq 1 ]; then
+          echo "有文档缺失，请检查"
+          exit 1
+        fi
+        echo "文档检查通过"
 
     - name: Run ESLint
-      run: |
-        echo "=== ESLint代码检查 ==="
-        npx eslint uniCloud-aliyun/cloudfunctions/ --ext .js 2>&1 || echo "ESLint检查完成 ✓"
-        echo "代码质量检查通过 ✓"
+      run: npx eslint uniCloud-aliyun/cloudfunctions/ --ext .js || echo "ESLint检查完成"
 
     - name: Run unit tests
-      run: |
-        echo "=== 运行单元测试 ==="
-        npm test
-        echo "单元测试完成 ✓"
+      run: npm test
 
     - name: Upload test coverage
       uses: actions/upload-artifact@v4

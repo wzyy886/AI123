@@ -44,7 +44,7 @@ describe('sanitizeInput', () => {
   });
 
   test('should remove special characters', () => {
-    expect(sanitizeInput('test&"';`<>')).toBe('test');
+    expect(sanitizeInput("test&\"';`<>")).toBe('test');
   });
 
   test('should remove script keyword', () => {

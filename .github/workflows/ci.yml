@@ -44,7 +44,7 @@ jobs:
     - name: Check documentation files
       run: |
         echo "=== 检查必要文档 ==="
-        docs=("README.md" "API.md" "prompt_log.md" "code_review.md" "summary.md")
+        docs=("README.md" "API.md" "prompt_log.md" "code_review.md" "个人总结报告.docx")
         missing=0
         for doc in "${docs[@]}"; do
           if [ -f "$doc" ]; then

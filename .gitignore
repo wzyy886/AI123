@@ -9,4 +9,4 @@ package-lock.json
 *.docx
 *.doc
 !个人总结报告.docx
-!AI code_review.docx
+!AI代码审查报告.doc

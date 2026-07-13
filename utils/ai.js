@@ -1,6 +1,6 @@
 const MAX_RETRIES = 2
 
-const DEVELOPMENT_MODE = true
+const DEVELOPMENT_MODE = false
 
 const API_KEY = 'sk-ws-H.EMYIRMP.kUZd.MEQCICr30HCsmUwWipre9EMlky7Y2j6mN0qcfdbR7LzNfbzIAiAcSPhq7Ef8n-iHb0bQM6ZncMHpzViKptueytzBOBtDcQ'
 const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'

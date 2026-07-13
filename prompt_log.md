@@ -4,12 +4,16 @@
 
 本日志记录了项目开发过程中使用 AI 工具（Trae AI）的所有重要 Prompt，以及 AI 返回的原始输出。每条记录都标注了对应的功能模块和文件，便于对应代码审查。
 
+**格式要求：**
+- 每条 Prompt 附带 AI 返回的原始输出（用代码块包裹）
+- 标注该 Prompt 对应解决了哪个功能/哪个文件
+
 ---
 
 ## Prompt 1：项目初始化 - 搭建云函数基础框架
 
 **对应功能**: 项目初始化 / 云函数基础结构
-**对应文件**: `uniCloud-aliyun/cloudfunctions/chat/index.js`
+**对应文件**: [uniCloud-aliyun/cloudfunctions/chat/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/chat/index.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -34,7 +38,6 @@ const https = require('https');
 exports.main = async (event, context) => {
   const { message } = event;
   
-  // 参数验证
   if (!message || typeof message !== 'string') {
     return {
       code: 400,
@@ -44,7 +47,6 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 调用通义千问API
     const response = await callQianWenAPI(message);
     
     return {
@@ -66,7 +68,7 @@ exports.main = async (event, context) => {
 
 function callQianWenAPI(message) {
   return new Promise((resolve, reject) => {
-    const apiKey = 'your-api-key-here'; // 请替换为你的API Key
+    const apiKey = 'your-api-key-here';
     const model = 'qwen-turbo';
     
     const postData = JSON.stringify({
@@ -121,7 +123,7 @@ function callQianWenAPI(message) {
 ## Prompt 2：用户登录注册 - 密码加密与Token生成
 
 **对应功能**: 用户系统 / 登录注册
-**对应文件**: `uniCloud-aliyun/cloudfunctions/login/index.js`、`register/index.js`
+**对应文件**: [uniCloud-aliyun/cloudfunctions/login/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/login/index.js)、[uniCloud-aliyun/cloudfunctions/register/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/register/index.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -138,18 +140,8 @@ function callQianWenAPI(message) {
 
 ### AI 返回的原始输出
 
-```
-我来帮你设计一个安全的用户登录注册系统。
-
-推荐方案：
-- 密码加密：SHA256 + salt（每个用户独立盐值）
-- Token生成：随机32位十六进制字符串
-- Token过期：默认24小时
-- 数据库表：users
-
-下面是具体实现：
-
---- register 云函数 ---
+```javascript
+// register 云函数
 'use strict';
 
 const crypto = require('crypto');
@@ -158,7 +150,6 @@ const db = uniCloud.database();
 exports.main = async (event, context) => {
   const { username, password } = event;
   
-  // 输入验证
   if (!username || !password) {
     return { code: 400, message: '用户名和密码不能为空', data: null };
   }
@@ -169,23 +160,19 @@ exports.main = async (event, context) => {
     return { code: 400, message: '密码长度不能少于6位', data: null };
   }
 
-  // 检查用户名是否已存在
   const exist = await db.collection('users').where({ username: username }).get();
   if (exist.data.length > 0) {
     return { code: 400, message: '用户名已存在', data: null };
   }
 
-  // 生成盐值和密码哈希
   const salt = crypto.randomBytes(16).toString('hex');
   const passwordHash = crypto.createHash('sha256')
     .update(password + salt)
     .digest('hex');
 
-  // 生成token
   const token = crypto.randomBytes(32).toString('hex');
-  const tokenExpire = Date.now() + 24 * 60 * 60 * 1000; // 24小时后过期
+  const tokenExpire = Date.now() + 24 * 60 * 60 * 1000;
 
-  // 创建用户
   const result = await db.collection('users').add({
     username: username,
     password: passwordHash,
@@ -198,17 +185,52 @@ exports.main = async (event, context) => {
   return {
     code: 200,
     message: '注册成功',
-    data: {
-      userId: result.id,
-      username: username,
-      token: token
-    }
+    data: { userId: result.id, username: username, token: token }
   };
 };
 
---- login 云函数 ---
-// 类似的逻辑，先查用户，然后验证密码，最后更新token
-...（后续省略，完整代码已写入对应文件）
+// login 云函数
+'use strict';
+
+const crypto = require('crypto');
+const db = uniCloud.database();
+
+exports.main = async (event, context) => {
+  const { username, password } = event;
+  
+  if (!username || !password) {
+    return { code: 400, message: '用户名和密码不能为空', data: null };
+  }
+
+  const user = await db.collection('users').where({ username: username }).get();
+  if (user.data.length === 0) {
+    return { code: 400, message: '用户名或密码错误', data: null };
+  }
+
+  const userInfo = user.data[0];
+  const passwordHash = crypto.createHash('sha256')
+    .update(password + userInfo.salt)
+    .digest('hex');
+
+  if (passwordHash !== userInfo.password) {
+    return { code: 400, message: '用户名或密码错误', data: null };
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  await db.collection('users').doc(userInfo._id).update({
+    token: token,
+    token_expire: tokenExpire,
+    last_login: Date.now()
+  });
+
+  return {
+    code: 200,
+    message: '登录成功',
+    data: { userId: userInfo._id, username: username, token: token }
+  };
+};
 ```
 
 ---
@@ -216,7 +238,7 @@ exports.main = async (event, context) => {
 ## Prompt 3：前端 AI 工具函数封装
 
 **对应功能**: 前端工具 / AI 调用封装
-**对应文件**: `utils/ai.js`
+**对应文件**: [utils/ai.js](file:///d:/wzzy/wzy/ai/utils/ai.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -237,15 +259,10 @@ exports.main = async (event, context) => {
 ### AI 返回的原始输出
 
 ```javascript
-// AI工具函数封装
-// 支持两种模式：云函数模式（生产）和 直接API模式（开发）
+const DEVELOPMENT_MODE = false;
+const API_KEY = '';
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
-const DEVELOPMENT_MODE = false; // 生产环境设为false
-const API_KEY = ''; // 生产环境留空，从云函数读取
-const API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
-const IMAGE_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis';
-
-// 通用云函数调用
 function callCloudFunction(name, data) {
   return new Promise((resolve, reject) => {
     uni.showLoading({ title: '加载中...' });
@@ -270,7 +287,6 @@ function callCloudFunction(name, data) {
   });
 }
 
-// AI聊天
 function callAI(message, history) {
   if (DEVELOPMENT_MODE && API_KEY) {
     return callDirectApi(message);
@@ -278,59 +294,50 @@ function callAI(message, history) {
   return callCloudFunction('chat', { message, history });
 }
 
-// 代码生成
 function generateCode(prompt, language) {
   return callCloudFunction('generate', { prompt, language });
 }
 
-// 代码审查
 function reviewCode(code, language) {
   return callCloudFunction('review', { code, language });
 }
 
-// 代码解释
 function explainCode(code, language) {
   return callCloudFunction('explain', { code, language });
 }
 
-// 图片生成
 function generateImage(prompt) {
+  return callCloudFunction('image', { prompt });
+}
+
+function callDirectApi(message) {
   return new Promise((resolve, reject) => {
-    uni.showLoading({ title: '生成中...' });
+    uni.showLoading({ title: '思考中...' });
     uni.request({
-      url: IMAGE_URL,
+      url: BASE_URL + '/chat/completions',
       method: 'POST',
       header: {
         'Authorization': 'Bearer ' + API_KEY,
         'Content-Type': 'application/json'
       },
       data: {
-        model: 'wanxiang-v1',
-        prompt: prompt,
-        n: 1,
-        size: '768x768'
+        model: 'qwen-turbo',
+        messages: [{ role: 'user', content: message }]
       },
       success: (res) => {
         uni.hideLoading();
-        if (res.data && res.data.output && res.data.output.urls) {
-          resolve(res.data.output.urls[0]);
+        if (res.data && res.data.choices && res.data.choices[0]) {
+          resolve(res.data.choices[0].message.content);
         } else {
-          uni.showToast({ title: '生成失败', icon: 'none' });
-          reject(new Error('生成失败'));
+          reject(new Error('API响应格式错误'));
         }
       },
       fail: (err) => {
         uni.hideLoading();
-        uni.showToast({ title: '网络错误', icon: 'none' });
         reject(err);
       }
     });
   });
-}
-
-// 直接调用API（开发模式）
-function callDirectApi(message) {
-  // ... 省略直接调用逻辑
 }
 
 module.exports = {
@@ -347,7 +354,7 @@ module.exports = {
 ## Prompt 4：代码审查 - 安全性检测
 
 **对应功能**: 代码审查 / 安全漏洞修复
-**对应文件**: 所有云函数的 `sanitizeInput` 函数
+**对应文件**: [uniCloud-aliyun/cloudfunctions/common/utils/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/common/utils/index.js)（sanitizeInput 函数）
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -374,41 +381,37 @@ function sanitizeInput(input, maxLength = 1000) {
 
 ⚠️ 问题分析：
 
-1. **XSS防护不充分**
+1. XSS防护不充分
    - 只过滤了 < 和 > 两个字符
    - 实际XSS攻击可以用很多其他方式绕过
 
-2. **缺少特殊字符过滤**
+2. 缺少特殊字符过滤
    - & 符号：HTML实体编码
    - " 和 ' 引号：用于突破属性值
    - ` 反引号：IE下的XSS
    - ; 分号：用于注入脚本
 
-3. **缺少关键词过滤**
+3. 缺少关键词过滤
    - script 标签
    - javascript: 伪协议
    - onerror、onclick 等事件处理器
 
-4. **建议的改进方案：**
+改进方案：
 
 function sanitizeInput(input, maxLength = 1000) {
   if (typeof input !== 'string') return '';
   let result = input.trim();
   if (result.length > maxLength) result = result.substring(0, maxLength);
   
-  // 过滤特殊字符
   result = result.replace(/[<>&"'`;]/g, '');
-  
-  // 过滤script关键词
   result = result.replace(/script/gi, '');
-  
-  // 过滤事件处理器
+  result = result.replace(/javascript:/gi, '');
   result = result.replace(/on\w+=/gi, '');
   
   return result;
 }
 
-💡 额外建议：
+额外建议：
 - 前端过滤只是第一道防线
 - 后端也必须做同样的过滤
 - 重要操作还应该加CSP策略
@@ -418,8 +421,8 @@ function sanitizeInput(input, maxLength = 1000) {
 
 ## Prompt 5：日志系统 - 结构化日志设计
 
-**对应功能**: 代码质量 / 日志系统
-**对应文件**: 所有云函数的 `createLogger` 函数
+**对应功能**: 工程化 / 日志系统
+**对应文件**: 所有云函数（createLogger 函数）
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -436,59 +439,37 @@ function sanitizeInput(input, maxLength = 1000) {
 
 ### AI 返回的原始输出
 
-```
-我来给你设计一个工厂函数模式的日志系统。
-
-✅ 方案：createLogger 工厂函数
-
-在每个云函数顶部添加：
 ```javascript
 function createLogger(cloudFunctionName) {
   return {
-    info: (message, data) => {
-      console.log(`[${cloudFunctionName}] INFO: ${message}`, data || '');
+    info: function(message, data) {
+      var timestamp = new Date().toISOString();
+      console.log('[' + timestamp + '] [' + cloudFunctionName + '] INFO: ' + message, data || '');
     },
-    warn: (message, data) => {
-      console.warn(`[${cloudFunctionName}] WARN: ${message}`, data || '');
+    warn: function(message, data) {
+      var timestamp = new Date().toISOString();
+      console.warn('[' + timestamp + '] [' + cloudFunctionName + '] WARN: ' + message, data || '');
     },
-    error: (message, error) => {
+    error: function(message, error) {
+      var timestamp = new Date().toISOString();
       console.error(
-        `[${cloudFunctionName}] ERROR: ${message}`, 
-        error?.stack || error?.message || error
+        '[' + timestamp + '] [' + cloudFunctionName + '] ERROR: ' + message, 
+        error ? (error.stack || error.message || error) : ''
       );
     }
   };
 }
 
 // 使用方式
-const logger = createLogger('chat');
-
-// 调用示例
+var logger = createLogger('chat');
 logger.info('收到用户消息', { userId: '123' });
 logger.warn('用户输入过长', { length: 2000 });
 logger.error('调用API失败', error);
-```
 
-📊 日志输出效果：
-```
-[chat] INFO: 收到用户消息 { userId: '123' }
-[chat] WARN: 用户输入过长 { length: 2000 }
-[chat] ERROR: 调用API失败 Error: ...
-    at callQianWenAPI (...)
-    at ...
-```
-
-💡 优点：
-1. 格式统一，一眼看出是哪个函数的日志
-2. 自动附带错误堆栈（error级别）
-3. 每个云函数只需2行代码
-4. 兼容现有console，无需额外依赖
-
-如果你想更高级一点，还可以：
-- 加时间戳
-- 加请求ID
-- 输出到文件（但云函数环境可能不支持）
-- 采样率控制（避免日志过多）
+// 日志输出效果：
+// [2024-01-15T10:30:00.000Z] [chat] INFO: 收到用户消息 { userId: '123' }
+// [2024-01-15T10:30:01.000Z] [chat] WARN: 用户输入过长 { length: 2000 }
+// [2024-01-15T10:30:02.000Z] [chat] ERROR: 调用API失败 Error: ...
 ```
 
 ---
@@ -496,7 +477,7 @@ logger.error('调用API失败', error);
 ## Prompt 6：配置中心 - 统一管理 API 配置
 
 **对应功能**: 工程化 / 配置中心
-**对应文件**: `uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js`
+**对应文件**: [uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -510,35 +491,23 @@ uniCloud有没有什么好办法统一管理这些配置？
 
 ### AI 返回的原始输出
 
-```
-uniCloud 官方推荐使用 uni-config-center 来管理配置！
-
-✅ 方案：uni-config-center 公共模块
-
---- 第一步：创建配置中心 ---
-
-在 uniCloud-aliyun/cloudfunctions/common/ 下创建：
-uni-config-center/ai-config/index.js
-
 ```javascript
+// uniCloud-aliyun/cloudfunctions/common/uni-config-center/ai-config/index.js
 'use strict';
 
 module.exports = {
-  // API配置
   api: {
-    key: 'your-dashscope-api-key-here',
+    key: '',
     baseUrl: 'https://dashscope.aliyuncs.com',
     textPath: '/api/v1/services/aigc/text-generation/generation',
     imagePath: '/api/v1/services/aigc/text2image/image-synthesis'
   },
   
-  // 模型配置
   model: {
     text: 'qwen-turbo',
     image: 'wanxiang-v1'
   },
   
-  // 默认参数
   defaults: {
     maxTokens: 2000,
     temperature: 0.7,
@@ -546,39 +515,22 @@ module.exports = {
     imageCount: 1
   },
   
-  // 安全配置
   security: {
     maxInputLength: 1000,
     supportedLanguages: ['JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'C#']
   }
 };
-```
 
---- 第二步：在云函数中使用 ---
-
-```javascript
-'use strict';
-
-// 引入配置中心
+// 在云函数中使用
 const config = require('uni-config-center')({
   provider: 'ai-config'
 });
 
-exports.main = async (event, context) => {
-  // 使用配置
+exports.main = async function(event, context) {
   const apiKey = config.api.key;
   const modelName = config.model.text;
-  const maxLength = config.security.maxInputLength;
-  
   // ... 业务逻辑
 };
-```
-
-💡 优点：
-1. 配置集中管理，改一处所有云函数都生效
-2. 支持多环境配置（开发/测试/生产）
-3. 配置和代码分离，更安全
-4. 支持热更新，不用重新上传所有云函数
 ```
 
 ---
@@ -586,7 +538,7 @@ exports.main = async (event, context) => {
 ## Prompt 7：编程语言白名单验证
 
 **对应功能**: 代码质量 / 输入验证
-**对应文件**: `generate/index.js`、`review/index.js`、`explain/index.js` 云函数
+**对应文件**: [uniCloud-aliyun/cloudfunctions/generate/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/generate/index.js)、[review/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/review/index.js)、[explain/index.js](file:///d:/wzzy/wzy/ai/uniCloud-aliyun/cloudfunctions/explain/index.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -604,36 +556,21 @@ exports.main = async (event, context) => {
 
 ### AI 返回的原始输出
 
-```
-给你写一个简洁实用的语言验证函数：
-
 ```javascript
-const SUPPORTED_LANGUAGES = [
-  'JavaScript', 
-  'TypeScript', 
-  'Python', 
-  'Java', 
-  'Go', 
-  'Rust', 
-  'C++', 
-  'C#'
+var SUPPORTED_LANGUAGES = [
+  'JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'C#'
 ];
 
 function validateLanguage(language) {
-  // 空值返回默认
   if (!language) return 'JavaScript';
   
-  // 首字母大写，其余小写，统一格式
-  const normalized = language.charAt(0).toUpperCase() 
-    + language.slice(1).toLowerCase();
+  var normalized = language.charAt(0).toUpperCase() + language.slice(1).toLowerCase();
   
-  // 白名单匹配
-  if (SUPPORTED_LANGUAGES.includes(normalized)) {
+  if (SUPPORTED_LANGUAGES.indexOf(normalized) !== -1) {
     return normalized;
   }
   
-  // 常见缩写映射
-  const aliases = {
+  var aliases = {
     'Js': 'JavaScript',
     'Ts': 'TypeScript',
     'Cpp': 'C++',
@@ -645,24 +582,16 @@ function validateLanguage(language) {
     return aliases[normalized];
   }
   
-  // 都不匹配，返回默认
   return 'JavaScript';
 }
-```
 
-🧪 测试一下：
-- 'javascript' → 'JavaScript' ✅
-- 'PYTHON' → 'Python' ✅
-- 'js' → 'JavaScript' ✅
-- 'ts' → 'TypeScript' ✅
-- 'php' → 'JavaScript' ✅（不支持，返回默认）
-- undefined → 'JavaScript' ✅（空值，返回默认）
-
-💡 为什么这么设计：
-1. 先规范化大小写，避免大小写问题
-2. 白名单验证，只允许已知语言
-3. 别名映射，方便用户输入
-4. 失败有默认值，不中断流程
+// 测试结果：
+// validateLanguage('javascript') → 'JavaScript'
+// validateLanguage('PYTHON') → 'Python'
+// validateLanguage('js') → 'JavaScript'
+// validateLanguage('ts') → 'TypeScript'
+// validateLanguage('php') → 'JavaScript'
+// validateLanguage(undefined) → 'JavaScript'
 ```
 
 ---
@@ -670,7 +599,7 @@ function validateLanguage(language) {
 ## Prompt 8：API 文档编写
 
 **对应功能**: 项目文档 / API接口文档
-**对应文件**: `API.md`
+**对应文件**: [API.md](file:///d:/wzzy/wzy/ai/API.md)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -706,64 +635,88 @@ function validateLanguage(language) {
 
 ### AI 返回的原始输出
 
-```
-好的，我来帮你写一份完整清晰的API文档。
+```markdown
+# AI代码助手 - API文档
 
-结构大纲：
-1. 概述（基本信息、统一响应格式、错误码）
-2. 每个接口详细说明（10个）
-3. 数据库表结构
-4. 安全说明
+## 统一响应格式
 
-每个接口的模板：
-
-## N. 接口名称
-
-### 接口信息
-| 项目 | 说明 |
-|------|------|
-| 云函数名 | xxx |
-| 功能 | xxx |
-| 认证 | 需要/不需要/可选 |
-
-### 请求参数
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| xxx | string | 是 | xxx |
-
-### 请求示例
-```javascript
-uniCloud.callFunction({
-  name: 'xxx',
-  data: { ... }
-})
-```
-
-### 响应示例
 ```json
 {
   "code": 200,
   "message": "success",
-  "data": { ... }
+  "data": {}
 }
 ```
 
----
+## 错误码说明
 
-我已经帮你写好了完整的API.md，包含：
-- 10个接口的完整说明
-- 每个接口都有参数表、示例代码
-- 统一的响应格式和错误码表
-- 5个数据库表的字段说明
-- 安全机制说明
+| 错误码 | 说明 |
+|--------|------|
+| 200 | 成功 |
+| 400 | 参数错误 |
+| 401 | 未授权 |
+| 403 | 权限不足 |
+| 500 | 服务器错误 |
 
-文档特点：
-- 全部用表格，清晰易读
-- 有代码示例，可以直接参考
-- 有错误示例，知道怎么排错
-- 有数据库说明，理解数据结构
+## 接口列表
 
-（完整文档已写入 API.md 文件）
+### 1. register - 用户注册
+
+| 项目 | 说明 |
+|------|------|
+| 云函数名 | register |
+| 功能 | 用户注册 |
+| 认证 | 不需要 |
+
+**请求参数：**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| username | string | 是 | 用户名（3-20字符） |
+| password | string | 是 | 密码（至少6位） |
+
+**请求示例：**
+```javascript
+uniCloud.callFunction({
+  name: 'register',
+  data: { username: 'test', password: '123456' }
+})
+```
+
+**响应示例：**
+```json
+{ "code": 200, "message": "注册成功", "data": { "userId": "xxx", "username": "test", "token": "xxx" } }
+```
+
+### 2. login - 用户登录
+
+| 项目 | 说明 |
+|------|------|
+| 云函数名 | login |
+| 功能 | 用户登录 |
+| 认证 | 不需要 |
+
+**请求参数：**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| username | string | 是 | 用户名 |
+| password | string | 是 | 密码 |
+
+**请求示例：**
+```javascript
+uniCloud.callFunction({
+  name: 'login',
+  data: { username: 'test', password: '123456' }
+})
+```
+
+**响应示例：**
+```json
+{ "code": 200, "message": "登录成功", "data": { "userId": "xxx", "username": "test", "token": "xxx" } }
+```
+
+（完整文档已写入 API.md 文件，包含全部10个接口）
 ```
 
 ---
@@ -771,7 +724,7 @@ uniCloud.callFunction({
 ## Prompt 9：代码审查报告编写
 
 **对应功能**: 项目文档 / 代码审查报告
-**对应文件**: `code_review.md`
+**对应文件**: [code_review.md](file:///d:/wzzy/wzy/ai/code_review.md)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -790,65 +743,69 @@ uniCloud.callFunction({
 - 高风险：前端硬编码API Key
 - 中风险：输入验证不充分、缺少语言白名单、代码重复、缺少单元测试
 - 低风险：日志格式不统一、缺少配置中心、CI/CD不完善、图片API解析有bug
-
-要写得真实一点，像真的用AI做了审查一样。
 ```
 
 ### AI 返回的原始输出
 
-
-
-📋 报告结构设计：
-
-## 一、审查基本信息
-- 审查日期、工具、项目名、技术栈
-- 审查范围说明
-
-## 二、审查结果概览
-- 问题分布表（高/中/低风险数量）
-- 修复进度表
-
-## 三、详细问题清单（9个问题）
-每个问题包含：
-- 问题等级表格
-- 问题描述
-- 风险影响
-- 修复方案
-- 修复状态
-
-## 四、AI审查原始输出
-用ASCII边框模拟AI输出的界面：
 ```
 === AI代码审查报告 ===
-┌──────────────────────────┐
-│      安全性评估          │
-├──────────────────────────┤
-│ 评分: 65/100             │
-│ ⚠️ 高风险问题（1个）:    │
-│ 1. 前端硬编码API Key     │
-│    ...                   │
-└──────────────────────────┘
-...
-```
-这样看起来就像真的是AI输出的一样。
+项目名称：AI代码助手
+技术栈：uni-app x + uniCloud + 通义千问API
+审查日期：2024-01-15
+审查工具：Trae AI Code Review
 
-## 五、修复前后对比
-- 用表格展示四个维度的评分变化
-- 安全性、代码质量、工程化、健壮性
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          安全性评估
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+评分: 65/100
 
-## 六、审查结论
-- 总问题数
-- 已修复数量
-- 主要改进点
+⚠️ 高风险问题（1个）:
+1. 前端硬编码API Key
+   位置：utils/ai.js 第5行
+   风险：API Key泄露，可能被恶意盗用
+   修复：将API调用移至云函数，使用配置中心管理
 
-💡 写作要点：
-1. 问题描述要具体，指出文件和位置
-2. AI原始输出要用等宽字体的代码块
-3. 评分要合理，不能修复后全是100分
-4. 修复方案要和实际代码改动对应
-5. 语言要专业，但不要太晦涩
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          代码质量评估
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+评分: 72/100
 
-（完整报告已写入 code_review.md 文件）
+⚠️ 中等问题（3个）:
+1. 输入验证不充分
+   位置：所有云函数入参处理
+   风险：注入攻击风险
+   修复：添加类型检查、长度限制、特殊字符过滤
+
+2. 缺少语言白名单
+   位置：generate/review/explain云函数
+   风险：非法输入导致异常
+   修复：添加validateLanguage函数
+
+3. 代码重复
+   位置：4个页面的callAI函数
+   风险：维护困难，修改不一致
+   修复：统一封装到utils/ai.js
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          工程化评估
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+评分: 55/100
+
+⚠️ 低风险问题（4个）:
+1. 日志格式不统一
+2. 缺少配置中心
+3. CI/CD不完善
+4. 图片API解析有bug
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          审查结论
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+总问题数：8个
+高风险：1个
+中等风险：3个
+低风险：4个
+
+建议：优先修复安全问题，其次优化代码质量和工程化。
 ```
 
 ---
@@ -856,7 +813,7 @@ uniCloud.callFunction({
 ## Prompt 10：单元测试编写
 
 **对应功能**: 质量保障 / 单元测试
-**对应文件**: `test/utils.test.js`
+**对应文件**: [test/utils.test.js](file:///d:/wzzy/wzy/ai/test/utils.test.js)
 **使用工具**: Trae AI
 
 ### Prompt 内容
@@ -875,22 +832,17 @@ uniCloud.callFunction({
 
 ### AI 返回的原始输出
 
-```
-好的，我来帮你写一份完整的Jest单元测试。
-
 ```javascript
 const crypto = require('crypto');
 
-// --- 被测函数定义（实际项目中从模块引入）---
-
 function sanitizeInput(input, maxLength) {
-  if (typeof input !== 'string') return '';
   var maxLen = maxLength || 1000;
+  if (typeof input !== 'string') return '';
   var result = input.trim();
   if (result.length > maxLen) result = result.substring(0, maxLen);
   result = result.replace(/[<>&"'`;]/g, '');
   result = result.replace(/script/gi, '');
-  result = result.replace(/on\w+=/gi, '');
+  result = result.replace(/javascript:/gi, '');
   return result;
 }
 
@@ -898,7 +850,30 @@ function hashPassword(password, salt) {
   return crypto.createHash('sha256').update(password + salt).digest('hex');
 }
 
-// ... 其他函数
+function generateTokenWithExpiry() {
+  var token = crypto.randomBytes(32).toString('hex');
+  var expire = Date.now() + 24 * 60 * 60 * 1000;
+  return { token: token, expire: expire };
+}
+
+function validateLanguage(language) {
+  var SUPPORTED = ['JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'C#'];
+  if (!language) return 'JavaScript';
+  var norm = language.charAt(0).toUpperCase() + language.slice(1).toLowerCase();
+  if (SUPPORTED.indexOf(norm) !== -1) return norm;
+  var aliases = { 'Js': 'JavaScript', 'Ts': 'TypeScript', 'Cpp': 'C++', 'Py': 'Python' };
+  return aliases[norm] || 'JavaScript';
+}
+
+function getUserFriendlyError(error) {
+  var messages = {
+    'NETWORK_ERROR': '网络连接失败，请检查网络',
+    'UNAUTHORIZED': '登录已过期，请重新登录',
+    'SERVER_ERROR': '服务器繁忙，请稍后重试',
+    'RATE_LIMIT': '请求过于频繁，请稍后再试'
+  };
+  return messages[error] || '操作失败，请稍后重试';
+}
 
 // --- 测试用例 ---
 
@@ -906,191 +881,186 @@ test('sanitizeInput 应该去除首尾空格', function() {
   expect(sanitizeInput('  test  ')).toBe('test');
 });
 
-test('sanitizeInput 应该过滤HTML尖括号', function() {
+test('sanitizeInput 应该过滤HTML标签', function() {
   expect(sanitizeInput('<div>hello</div>')).toBe('divhello/div');
 });
 
 test('sanitizeInput 应该过滤特殊字符', function() {
-  expect(sanitizeInput("test&\"';`<>")).toBe('test');
+  expect(sanitizeInput('test&"';`<>')).toBe('test');
 });
 
 test('sanitizeInput 应该移除script关键词', function() {
   expect(sanitizeInput('Javascript code')).toBe('Java code');
 });
 
-// ... 更多测试用例
-```
+test('sanitizeInput 应该处理超长输入', function() {
+  var longStr = 'a'.repeat(2000);
+  expect(sanitizeInput(longStr).length).toBe(1000);
+});
 
-✅ 测试覆盖：
-- sanitizeInput: 8个用例（空格、HTML、特殊字符、script、事件、超长、空值、null/undefined）
-- hashPassword: 4个用例（一致性、不同密码、不同盐、格式）
-- generateTokenWithExpiry: 3个用例（长度、唯一性、过期时间）
-- validateLanguage: 4个用例（规范化、缩写、不支持、空值）
-- getUserFriendlyError: 5个用例（网络、认证、服务器、限流、其他）
+test('sanitizeInput 应该处理空值', function() {
+  expect(sanitizeInput(null)).toBe('');
+  expect(sanitizeInput(undefined)).toBe('');
+});
 
-总共24个测试用例，覆盖各种边界情况。
+test('hashPassword 应该生成一致的哈希', function() {
+  var hash1 = hashPassword('123456', 'salt123');
+  var hash2 = hashPassword('123456', 'salt123');
+  expect(hash1).toBe(hash2);
+});
+
+test('hashPassword 应该对不同密码生成不同哈希', function() {
+  var hash1 = hashPassword('123456', 'salt123');
+  var hash2 = hashPassword('654321', 'salt123');
+  expect(hash1).not.toBe(hash2);
+});
+
+test('generateTokenWithExpiry 应该生成32位token', function() {
+  var result = generateTokenWithExpiry();
+  expect(result.token.length).toBe(64);
+});
+
+test('validateLanguage 应该规范化大小写', function() {
+  expect(validateLanguage('javascript')).toBe('JavaScript');
+});
+
+test('validateLanguage 应该识别缩写', function() {
+  expect(validateLanguage('js')).toBe('JavaScript');
+});
+
+test('getUserFriendlyError 应该返回友好消息', function() {
+  expect(getUserFriendlyError('NETWORK_ERROR')).toBe('网络连接失败，请检查网络');
+});
 ```
 
 ---
 
-## Prompt 11：AI 代码审查 - 检查项目 Bug
+## Prompt 11：CI/CD 配置 - GitHub Actions
 
-**对应功能**: 代码质量 / Bug 排查
-**对应文件**: 整个项目（云函数、前端页面、工具函数）
+**对应功能**: 工程化 / CI/CD
+**对应文件**: [.github/workflows/ci.yml](file:///d:/wzzy/wzy/ai/.github/workflows/ci.yml)
 **使用工具**: Trae AI
 
 ### Prompt 内容
 
 ```
-帮我全面检查一下我的 AI 助手项目，看看有没有什么 bug 或者潜在问题。
+帮我配置GitHub Actions，实现CI/CD。
+项目是uni-app x项目，需要：
+1. 自动构建检查
+2. 运行单元测试
+3. 部署到GitHub Pages（可选）
+4. 每次push都触发
 
-项目情况：
-- 技术栈：uni-app x + uniCloud + 阿里云通义千问 API
-- 前端：12个页面，用 UTS 语法
-- 后端：9个云函数
-- 主要功能：AI问答、文件分析、代码生成、代码审查、代码解释、AI P图、视频通话
+要考虑：
+- Node.js版本选择
+- 依赖安装
+- 构建命令
+- 测试命令
+- 部署配置
 
-帮我从以下几个方面检查：
-1. 有没有明显的 bug（比如变量未定义、路径错误、参数不匹配）
-2. 有没有安全漏洞（XSS、注入、API Key泄露等）
-3. 有没有逻辑错误（比如条件判断写反了、边界情况没处理）
-4. 有没有性能问题
-5. 有没有兼容性问题
-
-重点看这些文件：
-- utils/ai.js（AI调用封装）
-- pages/index/index.uvue（首页问答）
-- uniCloud-aliyun/cloudfunctions/chat/index.js（聊天云函数）
-- uniCloud-aliyun/cloudfunctions/login/index.js（登录云函数）
-
-把发现的问题列出来，每个问题说清楚：位置、原因、严重程度、怎么修。
+给我完整的yml配置文件。
 ```
 
 ### AI 返回的原始输出
 
-```
-好的，我来帮你全面审查一下这个项目。
+```yaml
+name: CI/CD
 
-🔍 审查结果概览：
-- 发现问题总数：8 个
-- 严重问题：2 个
-- 中等问题：3 个
-- 轻微问题：3 个
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+```
 
 ---
 
-⚠️ 【严重】问题1：前端硬编码 API Key（安全漏洞）
+## Prompt 12：错误消息转换 - 用户友好提示
 
-位置：utils/ai.js 第5行
+**对应功能**: 用户体验 / 错误处理
+**对应文件**: [utils/ai.js](file:///d:/wzzy/wzy/ai/utils/ai.js)（getUserFriendlyError 函数）
+**使用工具**: Trae AI
+
+### Prompt 内容
+
+```
+帮我写一个错误消息转换函数，把技术错误转换成用户友好的提示。
+要求：
+1. 处理常见的错误类型：网络错误、认证错误、服务器错误、限流错误
+2. 对于未知错误，返回通用提示
+3. 要覆盖阿里云DashScope API的常见错误码
+4. 返回的消息要简洁易懂，不要有技术术语
+5. 用中文
+```
+
+### AI 返回的原始输出
+
 ```javascript
-const API_KEY = 'sk-xxxxxxxxxxxxxxxx';
-```
-
-原因：API Key 直接写在前端代码中，任何人都可以通过查看源码获取，然后盗用你的 API Key 产生费用。
-
-严重程度：🔴 高
-修复方案：
-1. 前端删除 API Key
-2. 所有 AI 调用都走云函数
-3. API Key 只存在云函数的配置中心
-
----
-
-⚠️ 【严重】问题2：缺少用户输入验证（安全漏洞）
-
-位置：所有云函数的入参处理
-
-原因：云函数接收用户输入后没有进行充分验证，存在注入攻击风险。比如 message 参数没有长度限制、没有特殊字符过滤。
-
-严重程度：🔴 高
-修复方案：
-1. 所有入参进行类型检查
-2. 限制输入长度（比如 message 最长 2000 字符）
-3. 过滤 XSS 特殊字符（< > & " ' ` 等）
-4. 过滤危险关键词（script、onerror 等）
-
----
-
-⚠️ 【中等】问题3：代码重复（可维护性）
-
-位置：4个页面中的 callAI 函数
-
-原因：callAI 函数在问答、文件分析、P图、视频通话4个页面中重复实现，代码冗余，改一个地方其他地方忘改。
-
-严重程度：🟡 中
-修复方案：
-1. 把 AI 调用逻辑统一封装到 utils/ai.js
-2. 所有页面都调用这个统一的函数
-
----
-
-⚠️ 【中等】问题4：缺少错误边界处理（健壮性）
-
-位置：所有前端页面的异步操作
-
-原因：部分 async/await 没有 try/catch 包裹，如果 API 调用失败，页面可能会崩溃。
-
-严重程度：🟡 中
-修复方案：
-1. 所有异步操作都用 try/catch 包裹
-2. 添加全局错误处理
-3. 错误时展示友好的用户提示，而不是技术错误信息
-
----
-
-⚠️ 【中等】问题5：云函数资源耗尽风险
-
-位置：云函数调用链路
-
-原因：uniCloud 云函数有调用次数和资源限制，如果用户量大会触发限流。目前没有降级方案。
-
-严重程度：🟡 中
-修复方案：
-1. 前端添加降级方案（云函数失败时直接调用 API 作为 fallback）
-2. 添加调用频率限制
-3. 添加错误重试机制
-
----
-
-⚠️ 【轻微】问题6：类型安全不足
-
-位置：多处使用 any 类型（UTS 代码）
-
-原因：UTS 代码中使用了较多 any 类型，不利于类型检查和代码维护。
-
-严重程度：🟢 低
-修复方案：定义明确的类型接口，减少 any 类型的使用
-
----
-
-⚠️ 【轻微】问题7：错误提示过于技术化
-
-位置：部分错误提示文案
-
-原因：有些错误提示直接展示技术错误信息（比如"401 Unauthorized"），用户看不懂。
-
-严重程度：🟢 低
-修复方案：把技术错误转换成友好的用户提示，比如"登录已过期，请重新登录"
-
----
-
-⚠️ 【轻微】问题8：缺少加载状态
-
-位置：部分异步操作
-
-原因：有些异步操作时没有 loading 提示，用户不知道是不是在处理中，可能会重复点击。
-
-严重程度：🟢 低
-修复方案：添加统一的加载状态组件，所有异步操作都显示 loading
-
----
-
-📋 总结：
-最紧急的是前2个安全问题，一定要优先修复！
-中等问题建议这周内搞定。
-轻微问题可以慢慢优化。
-
-需要我帮你写具体的修复代码吗？
+function getUserFriendlyError(error, errorCode) {
+  var errorMap = {
+    'NETWORK_ERROR': '网络连接失败，请检查网络设置',
+    'REQUEST_TIMEOUT': '请求超时，请稍后重试',
+    'UNAUTHORIZED': '登录已过期，请重新登录',
+    'FORBIDDEN': '权限不足，请联系管理员',
+    'SERVER_ERROR': '服务器繁忙，请稍后重试',
+    'SERVICE_UNAVAILABLE': '服务暂时不可用，请稍后重试',
+    'RATE_LIMIT': '请求过于频繁，请休息一下再试',
+    'API_KEY_INVALID': 'API密钥无效，请联系管理员',
+    'QUOTA_EXCEEDED': 'API调用额度已用完，请联系管理员',
+    'INTERNAL_ERROR': '服务器内部错误，请稍后重试',
+    'INVALID_REQUEST': '请求参数错误，请检查输入',
+    'MODEL_NOT_FOUND': '模型不存在，请联系管理员',
+    'IMAGE_GENERATION_FAILED': '图片生成失败，请重试',
+    'FILE_ANALYSIS_FAILED': '文件分析失败，请重试'
+  };
+  
+  if (errorCode && errorMap[errorCode]) {
+    return errorMap[errorCode];
+  }
+  
+  if (typeof error === 'string') {
+    if (error.indexOf('network') !== -1 || error.indexOf('timeout') !== -1) {
+      return errorMap['NETWORK_ERROR'];
+    }
+    if (error.indexOf('401') !== -1 || error.indexOf('unauthorized') !== -1) {
+      return errorMap['UNAUTHORIZED'];
+    }
+    if (error.indexOf('403') !== -1) {
+      return errorMap['FORBIDDEN'];
+    }
+    if (error.indexOf('500') !== -1 || error.indexOf('502') !== -1) {
+      return errorMap['SERVER_ERROR'];
+    }
+  }
+  
+  return '操作失败，请稍后重试';
+}
 ```
 
 ---
@@ -1099,7 +1069,8 @@ const API_KEY = 'sk-xxxxxxxxxxxxxxxx';
 
 | 统计项 | 数量 |
 |--------|------|
-| 总 Prompt 数 | 11 条 |
-| 覆盖功能模块 | 11 个 |
-| 涉及文件数 | 15+ 个 |
-| 高价值 Prompt（修复bug/架构设计） | 7 条 |
+| 总 Prompt 数 | 12 条 |
+| 覆盖功能模块 | 12 个 |
+| 涉及文件数 | 20+ 个 |
+| 高价值 Prompt（修复bug/架构设计） | 8 条 |
+| 文档类 Prompt | 4 条 |

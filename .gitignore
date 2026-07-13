@@ -1,8 +1,11 @@
 unpackage/
 .DS_Store
 .hbuilderx/
-" " 
-node_modules
+node_modules/
 .env
 coverage/
 *.log
+package-lock.json
+*.docx
+*.doc
+!个人总结报告.docx

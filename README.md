@@ -176,8 +176,6 @@ AI视频通话页面，实时语音对话交互，视频画面展示，支持麦
 
 ### 服务配置信息
 
-> ⚠️ 以下为示例配置，实际部署时请替换为你自己的服务信息
-
 #### uniCloud 云服务空间
 
 | 配置项 | 值 | 说明 |
@@ -186,6 +184,10 @@ AI视频通话页面，实时语音对话交互，视频画面展示，支持麦
 | SpaceId | `mp-52179502-df44-46c2-a3c7-80d1ae48868a` | 空间唯一标识 |
 | 服务商 | 阿里云 | 云服务提供商 |
 | 计费方式 | 按量计费 | 后付费模式 |
+| 创建时间 | 2026-07-10 | 服务空间创建日期 |
+| 云存储上传域名 | `https://file-uniyqwrvf-mp-52179502-df44-46c2-a3c7-80d1ae48868a.oss-cn-zhangjiakou.aliyuncs.com` | 文件上传地址 |
+| 云存储下载域名 | `http://mp-52179502-df44-46c2-a3c7-80d1ae48868a.cdn.bspapp.com` | CDN 加速下载 |
+| request 域名 | `https://api.next.bspapp.com` | 云函数调用地址 |
 
 #### 阿里云 DashScope API
 
@@ -195,7 +197,6 @@ AI视频通话页面，实时语音对话交互，视频画面展示，支持麦
 | 图片生成 API | `https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/sync` | 万相 AI 接口 |
 | 对话模型 | `qwen-turbo` | 通义千问 Turbo 版 |
 | 图片模型 | `wanxiang-v1` | 万相 AI 图片生成 |
-| API Key | `sk-xxxxxxxxxxxxxxxx` | 从阿里云控制台获取 |
 
 ### 安装步骤
 
